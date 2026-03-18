@@ -208,9 +208,7 @@ export default function MapPage() {
                         setFormData(p);
                         setShowModal(true);
                       }}
-                    >
-                      ✏️ {t("map_edit_point", lang)}
-                    </button>
+                    >{t("map_edit_point", lang)}</button>
 
                     <button
                       onClick={() => {

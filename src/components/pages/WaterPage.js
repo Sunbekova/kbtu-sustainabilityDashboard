@@ -5,6 +5,7 @@ import { ChartCard, PageFooter, MetricCard, ProgressBar } from '../UI';
 import { useLang } from '../../LangContext';
 import { Tooltip } from '../Tooltip';
 import CardEditModal from '../CardEditModal';
+import ChartEditModal from '../ChartEditModal';
 
 Chart.register(...registerables);
 
@@ -16,6 +17,7 @@ export default function WaterPage({ setPage }) {
   const { water, waterTrend, buildingsWater } = data;
 
   const [editModal, setEditModal] = useState(null);
+  const [chartModal, setChartModal] = useState(null);
 
   const openWaterEdit = (cardKey) => {
     const defs = {
@@ -51,6 +53,70 @@ export default function WaterPage({ setPage }) {
         const next = { ...water, ...updated };
         importTable('water', next);
         if (config.dataSource === 'sheets') await pushToSheets('WaterMeta', next);
+      }
+    });
+  };
+
+  const openPieEdit = () => {
+    setChartModal({
+      title: t('water_by_type'),
+      rows: water.byType,
+      columns: [
+        { key: 'type', label: 'Type' },
+        { key: 'm3',   label: 'm³/year', type: 'number' },
+        {
+          key: '_pct',
+          label: '% of total',
+          computed: (row, rows) => {
+            const total = rows.reduce((s, r) => s + Number(r.m3 || 0), 0);
+            return total > 0 ? ((Number(row.m3) / total) * 100).toFixed(1) + '%' : '0%';
+          }
+        },
+      ],
+      summary: [
+        { label: 'Total m³',   compute: rows => rows.reduce((s,r) => s + Number(r.m3||0), 0).toLocaleString() },
+        { label: 'Categories', compute: rows => rows.length },
+      ],
+      onSave: async (updated) => {
+        // auto-recalculate water.total from sum of types
+        const totalM3 = updated.reduce((s, r) => s + Number(r.m3 || 0), 0);
+        const nextWater = { ...water, byType: updated, total: totalM3 };
+        importTable('water', nextWater);
+        if (config.dataSource === 'sheets') await pushToSheets('WaterByType', updated);
+      }
+    });
+  };
+  
+  const openWaterTrendEdit = () => {
+    setChartModal({
+      title: t('water_trend'),
+      rows: waterTrend,
+      columns: [
+        { key: 'year',     label: 'Year',         type: 'number' },
+        { key: 'total',    label: 'Total m³',     type: 'number' },
+        { key: 'recycled', label: 'Recycled m³',  type: 'number' },
+        {
+          key: '_pct',
+          label: '% recycled',
+          computed: (row) => {
+            const total = Number(row.total || 0);
+            const rec   = Number(row.recycled || 0);
+            return total > 0 ? ((rec / total) * 100).toFixed(1) + '%' : '0%';
+          }
+        },
+      ],
+      summary: [
+        { label: 'Latest total',    compute: rows => rows.length ? Number(rows[rows.length-1].total).toLocaleString() : '-' },
+        { label: 'Latest recycled', compute: rows => rows.length ? Number(rows[rows.length-1].recycled).toLocaleString() : '-' },
+        { label: 'Recycled %',      compute: rows => {
+          if (!rows.length) return '-';
+          const last = rows[rows.length-1];
+          return last.total > 0 ? ((last.recycled / last.total)*100).toFixed(1)+'%' : '0%';
+        }},
+      ],
+      onSave: async (updated) => {
+        importTable('waterTrend', updated);
+        if (config.dataSource === 'sheets') await pushToSheets('WaterTrend', updated);
       }
     });
   };
@@ -109,12 +175,15 @@ export default function WaterPage({ setPage }) {
           </Tooltip>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:20 }}>
-          <ChartCard title={t('water_by_type')} section="water">
-            <canvas ref={pieRef} style={{ maxHeight:220 }} />
-          </ChartCard>
-          <ChartCard title={t('water_trend')} section="waterTrend">
-            <canvas ref={trendRef} style={{ maxHeight:220 }} />
-          </ChartCard>
+        <ChartCard title={t('water_by_type')} section={null}>
+          {isAdmin && <button style={chartEditBtn} onClick={openPieEdit}>{t('edit_data')}</button>}
+          <canvas ref={pieRef} style={{ maxHeight:220 }} />
+        </ChartCard>
+
+        <ChartCard title={t('water_trend')} section={null}>
+          {isAdmin && <button style={chartEditBtn} onClick={openWaterTrendEdit}>{t('edit_data')}</button>}
+          <canvas ref={trendRef} style={{ maxHeight:220 }} />
+        </ChartCard>
         </div>
         <ChartCard title={t('heatmap_title')} section="buildingsWater">
           <div style={{ overflowX:'auto' }}>
@@ -142,6 +211,7 @@ export default function WaterPage({ setPage }) {
                 })}
               </tbody>
             </table>
+            {chartModal && <ChartEditModal {...chartModal} onClose={() => setChartModal(null)} />}
           </div>
         </ChartCard>
       </div>
@@ -156,3 +226,4 @@ const pageTitle= { fontFamily:"'Bebas Neue',sans-serif", fontSize:42, letterSpac
 const pageSub  = { fontSize:13, opacity:.65, marginBottom:32, color:'#fff' };
 const cardWrap = { position:'relative' };
 const editBtn  = { position:'absolute', top:10, right:10, zIndex:10, background:'rgba(45,90,61,.15)', border:'1px solid rgba(45,90,61,.3)', borderRadius:6, padding:'2px 8px', fontSize:11, color:'#2d5a3d', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontWeight:600 };
+const chartEditBtn = { float:'right', background:'rgba(45,90,61,.12)', border:'1px solid rgba(45,90,61,.25)', borderRadius:6, padding:'3px 10px', fontSize:11, color:'#2d5a3d', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontWeight:600, marginBottom:8 };

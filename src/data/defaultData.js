@@ -10,6 +10,13 @@ export const DEFAULT_DATA = {
     targetYear: 2035
   },
 
+  impactCategories: [
+    { label: 'Energy',            value: 41, color: '#2d5a3d' },
+    { label: 'Water',             value: 24, color: '#5a8a6a' },
+    { label: 'Waste',             value: 19, color: '#8ab890' },
+    { label: 'Green Initiatives', value: 16, color: '#b8d4bc' },
+  ],
+  
   // ── KPI Summary ──────────────────────────────────────────────
   kpi: {
     esgScore:   { value: 74,      unit: "/ 100",    delta: +6,   deltaLabel: "vs 2022" },

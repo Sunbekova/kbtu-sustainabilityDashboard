@@ -5,6 +5,7 @@ import { ChartCard, PageFooter } from '../UI';
 import { useLang } from '../../LangContext';
 import { Tooltip } from '../Tooltip';
 import CardEditModal from '../CardEditModal';
+import ChartEditModal from '../ChartEditModal';
 
 Chart.register(...registerables);
 
@@ -28,6 +29,7 @@ export default function WastePage({ setPage }) {
   const { waste, wasteTrend } = data;
 
   const [editModal, setEditModal] = useState(null);
+  const [chartModal, setChartModal] = useState(null);
 
   const openWasteEdit = (cardKey) => {
     const defs = {
@@ -61,6 +63,71 @@ export default function WastePage({ setPage }) {
         const next = { ...waste, ...updated };
         importTable('waste', next);
         if (config.dataSource === 'sheets') await pushToSheets('WasteMeta', next);
+      }
+    });
+  };
+
+  const openWasteTypeEdit = () => {
+    setChartModal({
+      title: t('waste_by_type'),
+      rows: waste.byType,
+      columns: [
+        { key: 'type',   label: 'Type' },
+        { key: 'tonnes', label: 'Tonnes', type: 'number' },
+        { key: 'color',  label: 'Color (hex)' },
+        {
+          key: '_pct',
+          label: '% of total',
+          computed: (row, rows) => {
+            const total = rows.reduce((s, r) => s + Number(r.tonnes || 0), 0);
+            return total > 0 ? ((Number(row.tonnes) / total) * 100).toFixed(1) + '%' : '0%';
+          }
+        },
+      ],
+      summary: [
+        { label: 'Total tonnes', compute: rows => rows.reduce((s,r) => s + Number(r.tonnes||0), 0).toLocaleString() },
+        { label: 'Types',        compute: rows => rows.length },
+      ],
+      onSave: async (updated) => {
+        // auto-recalculate waste.total
+        const totalTonnes = updated.reduce((s, r) => s + Number(r.tonnes || 0), 0);
+        const nextWaste = { ...waste, byType: updated, total: totalTonnes };
+        importTable('waste', nextWaste);
+        if (config.dataSource === 'sheets') await pushToSheets('WasteByType', updated);
+      }
+    });
+  };
+  
+  const openWasteTrendEdit = () => {
+    setChartModal({
+      title: t('waste_trend'),
+      rows: wasteTrend,
+      columns: [
+        { key: 'year',   label: 'Year',          type: 'number' },
+        { key: 'actual', label: 'Actual %',       type: 'number' },
+        { key: 'target', label: 'Target %',       type: 'number' },
+        {
+          key: '_gap',
+          label: 'Gap to target',
+          computed: (row) => {
+            const gap = Number(row.target || 0) - Number(row.actual || 0);
+            return (gap > 0 ? '+' : '') + gap.toFixed(1) + '%';
+          }
+        },
+      ],
+      summary: [
+        { label: 'Latest actual',  compute: rows => rows.length ? rows[rows.length-1].actual + '%' : '-' },
+        { label: 'Latest target',  compute: rows => rows.length ? rows[rows.length-1].target + '%' : '-' },
+        { label: 'Gap',            compute: rows => {
+          if (!rows.length) return '-';
+          const last = rows[rows.length-1];
+          const gap = Number(last.target) - Number(last.actual);
+          return (gap > 0 ? '+' : '') + gap.toFixed(1) + '%';
+        }},
+      ],
+      onSave: async (updated) => {
+        importTable('wasteTrend', updated);
+        if (config.dataSource === 'sheets') await pushToSheets('WasteTrend', updated);
       }
     });
   };
@@ -101,7 +168,8 @@ export default function WastePage({ setPage }) {
           </Tooltip>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
-          <ChartCard title={t('waste_by_type')} section="waste">
+          <ChartCard title={t('waste_by_type')} section={null}>
+          {isAdmin && <button style={chartEditBtn} onClick={openWasteTypeEdit}>{t('edit_data')}</button>}
             {waste.byType.map(w => (
               <div key={w.type} style={{ marginBottom:14 }}>
                 <div style={{ display:'flex', justifyContent:'space-between', fontSize:13, color:'#3d4f3d', marginBottom:4, fontWeight:500 }}>
@@ -113,7 +181,8 @@ export default function WastePage({ setPage }) {
               </div>
             ))}
           </ChartCard>
-          <ChartCard title={t('waste_trend')} section="wasteTrend">
+          <ChartCard title={t('waste_trend')} section={null}>
+            {isAdmin && <button style={chartEditBtn} onClick={openWasteTrendEdit}>{t('edit_data')}</button>}
             <canvas ref={trendRef} style={{ maxHeight:220 }} />
             <div style={{ marginTop:16 }}>
               <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4, fontSize:13, color:'#3d4f3d', fontWeight:600 }}>
@@ -129,6 +198,7 @@ export default function WastePage({ setPage }) {
       </div>
       <PageFooter onNext={() => setPage('environment')} />
       {editModal && <CardEditModal {...editModal} onClose={() => setEditModal(null)} />}
+      {chartModal && <ChartEditModal {...chartModal} onClose={() => setChartModal(null)} />}
     </div>
   );
 }
@@ -137,3 +207,4 @@ const section      = { padding:48, background:'#7d8f7d', position:'relative', zI
 const pageTitle    = { fontFamily:"'Bebas Neue',sans-serif", fontSize:42, letterSpacing:'.05em', color:'#fff', marginBottom:6 };
 const pageSub      = { fontSize:13, opacity:.65, marginBottom:32, color:'#fff' };
 const editBtnStyle = { position:'absolute', top:10, right:10, background:'rgba(45,90,61,.15)', border:'1px solid rgba(45,90,61,.3)', borderRadius:6, padding:'2px 8px', fontSize:11, color:'#2d5a3d', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontWeight:600 };
+const chartEditBtn = { float:'right', background:'rgba(45,90,61,.12)', border:'1px solid rgba(45,90,61,.25)', borderRadius:6, padding:'3px 10px', fontSize:11, color:'#2d5a3d', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontWeight:600, marginBottom:8 };

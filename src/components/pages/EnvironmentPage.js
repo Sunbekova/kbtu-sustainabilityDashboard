@@ -5,6 +5,7 @@ import { ChartCard, PageFooter } from '../UI';
 import { useLang } from '../../LangContext';
 import { Tooltip } from '../Tooltip';
 import CardEditModal from '../CardEditModal';
+import ChartEditModal from '../ChartEditModal';
 
 Chart.register(...registerables);
 
@@ -28,6 +29,7 @@ export default function EnvironmentPage({ setPage }) {
   const { environment } = data;
 
   const [editModal, setEditModal] = useState(null);
+  const [chartModal, setChartModal] = useState(null);
 
   const sdgLabelMap = {
     6: t('sdg_label_6'), 7: t('sdg_label_7'), 11: t('sdg_label_11'),
@@ -58,6 +60,116 @@ export default function EnvironmentPage({ setPage }) {
       },
     };
     setEditModal(defs[cardKey]);
+  };
+
+  const openSDGEdit = () => {
+    setChartModal({
+      title: t('sdg_progress'),
+      rows: environment.sdgProgress,
+      columns: [
+        { key: 'sdg',   label: 'SDG #',    type: 'number' },
+        { key: 'label', label: 'Label' },
+        { key: 'pct',   label: 'Progress %', type: 'number' },
+        { key: 'color', label: 'Color (hex)' },
+      ],
+      addable: false,
+      removable: false,
+      summary: [
+        { label: 'Avg progress', compute: rows => {
+          const avg = rows.reduce((s,r) => s + Number(r.pct||0), 0) / rows.length;
+          return avg.toFixed(1) + '%';
+        }},
+        { label: 'SDGs tracked', compute: rows => rows.length },
+      ],
+      onSave: async (updated) => {
+        const next = { ...environment, sdgProgress: updated };
+        importTable('environment', next);
+        if (config.dataSource === 'sheets') await pushToSheets('SDGProgress', updated);
+      }
+    });
+  };
+  
+  const openInitiativesEdit = () => {
+    setChartModal({
+      title: t('initiatives_chart'),
+      rows: environment.initiatives,
+      columns: [
+        { key: 'category', label: 'Category' },
+        { key: 'count',    label: 'Count', type: 'number' },
+        {
+          key: '_pct',
+          label: '% of total',
+          computed: (row, rows) => {
+            const total = rows.reduce((s, r) => s + Number(r.count || 0), 0);
+            return total > 0 ? ((Number(row.count) / total) * 100).toFixed(1) + '%' : '0%';
+          }
+        },
+      ],
+      summary: [
+        { label: 'Total initiatives', compute: rows => rows.reduce((s,r) => s + Number(r.count||0), 0) },
+        { label: 'Categories',        compute: rows => rows.length },
+      ],
+      onSave: async (updated) => {
+        const next = { ...environment, initiatives: updated };
+        importTable('environment', next);
+        if (config.dataSource === 'sheets') await pushToSheets('Initiatives', updated);
+      }
+    });
+  };
+  
+  const openTransportEdit = () => {
+    setChartModal({
+      title: t('transport_chart'),
+      rows: environment.transport,
+      columns: [
+        { key: 'mode', label: 'Mode' },
+        { key: 'pct',  label: '%', type: 'number' },
+        {
+          key: '_share',
+          label: '% of total entered',
+          computed: (row, rows) => {
+            const total = rows.reduce((s, r) => s + Number(r.pct || 0), 0);
+            return total > 0 ? ((Number(row.pct) / total) * 100).toFixed(1) + '%' : '0%';
+          }
+        },
+      ],
+      summary: [
+        { label: 'Total % entered', compute: rows => rows.reduce((s,r) => s + Number(r.pct||0), 0) },
+        { label: 'Modes',           compute: rows => rows.length },
+        { label: '⚠ Should be 100', compute: rows => {
+          const total = rows.reduce((s,r) => s + Number(r.pct||0), 0);
+          return total === 100 ? '✅ OK' : `⚠ ${total}`;
+        }},
+      ],
+      onSave: async (updated) => {
+        const next = { ...environment, transport: updated };
+        importTable('environment', next);
+        if (config.dataSource === 'sheets') await pushToSheets('Transport', updated);
+      }
+    });
+  };
+  
+  const openProcurementEdit = () => {
+    setChartModal({
+      title: t('procurement_chart'),
+      rows: environment.procurement,
+      columns: [
+        { key: 'label', label: 'Category' },
+        { key: 'pct',   label: '%', type: 'number' },
+      ],
+      summary: [
+        { label: 'Avg %',       compute: rows => {
+          const avg = rows.reduce((s,r) => s + Number(r.pct||0), 0) / (rows.length || 1);
+          return avg.toFixed(1) + '%';
+        }},
+        { label: 'Categories', compute: rows => rows.length },
+      ],
+      onSave: async (updated) => {
+        const next = { ...environment, procurement: updated };
+        importTable('environment', next);
+        if (config.dataSource === 'sheets') await pushToSheets('Procurement', updated);
+      }
+    });
   };
 
   useEffect(() => {
@@ -110,7 +222,8 @@ export default function EnvironmentPage({ setPage }) {
         </div>
 
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:20 }}>
-          <ChartCard title={t('sdg_progress')} section="environment">
+          <ChartCard title={t('sdg_progress')} section={null}>
+          {isAdmin && <button style={chartEditBtn} onClick={openSDGEdit}>{t('edit_data')}</button>}
             <div style={{ display:'flex', flexDirection:'column', gap:12, marginTop:8 }}>
               {environment.sdgProgress.map(s => (
                 <Tooltip key={s.sdg} text={t('tooltip_sdg')}>
@@ -128,16 +241,19 @@ export default function EnvironmentPage({ setPage }) {
               ))}
             </div>
           </ChartCard>
-          <ChartCard title={t('initiatives_chart')} section="environment">
+          <ChartCard title={t('initiatives_chart')} section={null}>
+            {isAdmin && <button style={chartEditBtn} onClick={openInitiativesEdit}>{t('edit_data')}</button>}
             <canvas ref={barRef} style={{ maxHeight:240 }} />
           </ChartCard>
         </div>
 
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
-          <ChartCard title={t('transport_chart')} section="environment">
+          <ChartCard title={t('transport_chart')} section={null}>
+            {isAdmin && <button style={chartEditBtn} onClick={openTransportEdit}>{t('edit_data')}</button>}
             <canvas ref={transportRef} style={{ maxHeight:220 }} />
           </ChartCard>
-          <ChartCard title={t('procurement_chart')}>
+          <ChartCard title={t('procurement_chart')}section={null}>
+            {isAdmin && <button style={chartEditBtn} onClick={openProcurementEdit}>{t('edit_data')}</button>}
             <div style={{ display:'flex', flexDirection:'column', gap:18, marginTop:12 }}>
               {environment.procurement.map(p => (
                 <div key={p.label}>
@@ -156,6 +272,7 @@ export default function EnvironmentPage({ setPage }) {
       </div>
       <PageFooter onNext={() => setPage('home')} nextLabel={t('home_btn')} />
       {editModal && <CardEditModal {...editModal} onClose={() => setEditModal(null)} />}
+      {chartModal && <ChartEditModal {...chartModal} onClose={() => setChartModal(null)} />}
     </div>
   );
 }
@@ -165,3 +282,4 @@ const pageTitle    = { fontFamily:"'Bebas Neue',sans-serif", fontSize:42, letter
 const pageSub      = { fontSize:13, opacity:.65, marginBottom:32, color:'#fff' };
 const editBtnStyle = { position:'absolute', top:10, right:10, background:'rgba(45,90,61,.15)', border:'1px solid rgba(45,90,61,.3)', borderRadius:6, padding:'2px 8px', fontSize:11, color:'#2d5a3d', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontWeight:600 };
 const topEditBtn   = { background:'rgba(255,255,255,.2)', color:'#fff', border:'1px solid rgba(255,255,255,.35)', borderRadius:8, padding:'6px 14px', fontSize:12, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontWeight:600 };
+const chartEditBtn = { float:'right', background:'rgba(45,90,61,.12)', border:'1px solid rgba(45,90,61,.25)', borderRadius:6, padding:'3px 10px', fontSize:11, color:'#2d5a3d', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontWeight:600, marginBottom:8 };
