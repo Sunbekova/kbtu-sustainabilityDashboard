@@ -144,7 +144,7 @@ export default function HomePage({ setPage }) {
       {/* Footer */}
       <div style={{ background:'#fff', padding:'28px 48px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <div style={{ fontSize:11, color:'#888' }}>OUR WEBSITE<br/><strong style={{ color:'#1a2a1a', fontSize:13 }}>WWW.KBTU.KZ</strong></div>
-        <button style={startBtn} onClick={() => setPage('energy')}>{t('start')} → &nbsp;→</button>
+        <button style={startBtn} onClick={() => setPage('energy')}>{t('start')} → &nbsp;</button>
       </div>
     </div>
   );

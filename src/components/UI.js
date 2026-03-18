@@ -21,8 +21,8 @@ export function LangSwitcher() {
 export function Nav({ activePage, setPage, onSettings }) {
   const { isAdmin, logout, syncStatus, config } = useData();
   const { t } = useLang();
-  const pages = ['home','energy','emissions','water','waste','environment'];
-  const labelKeys = ['nav_home','nav_energy','nav_emissions','nav_water','nav_waste','nav_environment'];
+  const pages = ['home','energy','emissions','water','waste','environment', 'map'];
+  const labelKeys = ['nav_home','nav_energy','nav_emissions','nav_water','nav_waste','nav_environment', 'nav_map'];
 
   return (
     <nav style={navStyle}>

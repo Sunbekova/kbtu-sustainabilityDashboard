@@ -7,6 +7,7 @@ const SHEET_MAP = {
   energyTrend: 'EnergyTrend', buildingsEnergy: 'BuildingsEnergy',
   emissionsTrend: 'EmissionsTrend', waterTrend: 'WaterTrend',
   buildingsWater: 'BuildingsWater', wasteTrend: 'WasteTrend', esgTrend: 'EsgTrend',
+  mapPoints: 'MapPoints',
 };
 
 // Map section name → column definitions
@@ -18,6 +19,7 @@ const SCHEMA = {
   buildingsWater: ['name','drinking','technical','irrigation'],
   wasteTrend: ['year','actual','target'],
   esgTrend: ['year','score'],
+  mapPoints: ['id', 'lat', 'lng', 'category', 'title', 'building', 'year', 'note'],
 };
 
 export default function TableEditor({ section, title, onClose }) {

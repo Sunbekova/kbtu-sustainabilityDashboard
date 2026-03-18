@@ -7,6 +7,7 @@ import SettingsPanel from './components/SettingsPanel';
 import HomePage from './components/HomePage';
 import EnergyPage from './components/EnergyPage';
 import { EmissionsPage, WaterPage, WastePage, EnvironmentPage } from './components/OtherPages';
+import MapPage from './components/MapPage';
 
 const fontLink = document.createElement('link');
 fontLink.rel = 'stylesheet';
@@ -36,7 +37,7 @@ function Dashboard() {
   const [showSettings, setShowSettings] = useState(false);
   const { editingTable, setEditingTable } = useData();
 
-  const pages = { home: HomePage, energy: EnergyPage, emissions: EmissionsPage, water: WaterPage, waste: WastePage, environment: EnvironmentPage };
+  const pages = { home: HomePage, energy: EnergyPage, emissions: EmissionsPage, water: WaterPage, waste: WastePage, environment: EnvironmentPage, map: MapPage, };
   const PageComponent = pages[page] || HomePage;
 
   return (

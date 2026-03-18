@@ -161,5 +161,5 @@ export const DEFAULT_DATA = {
     { year: 2021, score: 60 },
     { year: 2022, score: 68 },
     { year: 2023, score: 74 }
-  ]
+  ],
 };
