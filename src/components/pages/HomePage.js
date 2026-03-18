@@ -1,15 +1,19 @@
 import React, { useEffect, useRef } from 'react';
 import { Chart, registerables } from 'chart.js';
-import { useData } from '../DataContext';
-import { KPICard, ChartCard, PageFooter, ExportBar } from './UI';
-import { exportAllDataCSV } from '../importUtils';
-import { useLang } from '../LangContext';
-
-import fon from '../data/fon.png';
+import { useData } from '../../DataContext';
+import { KPICard, ChartCard, PageFooter, ExportBar } from '../UI';
+import { exportAllDataCSV } from '../../importUtils';
+import { useLang } from '../../LangContext';
+import { Tooltip } from '../Tooltip';
+import fon from '../../data/fon.png';
+import { useState } from 'react';
+import KPIEditModal from '../KPIEditModal';
 
 Chart.register(...registerables);
 
 export default function HomePage({ setPage }) {
+  const { isAdmin } = useData();
+  const [showKPIEdit, setShowKPIEdit] = useState(false);
   const { data } = useData();
   const { t } = useLang();
   const donutRef = useRef(), trendRef = useRef();
@@ -22,12 +26,7 @@ export default function HomePage({ setPage }) {
     donutChart.current = new Chart(donutRef.current, {
       type: 'doughnut',
       data: {
-        labels: [
-          t('energy'),
-          t('water'),
-          t('waste'),
-          t('greenInitiatives')
-        ],
+        labels: [t('energy'), t('water'), t('waste'), t('greenInitiatives')],
         datasets: [{ data: [41,24,19,16], backgroundColor: ['#2d5a3d','#5a8a6a','#8ab890','#b8d4bc'], borderWidth: 0, hoverOffset: 8 }]
       },
       options: { plugins: { legend: { display: false } }, cutout: '65%', animation: { duration: 800 } }
@@ -44,56 +43,54 @@ export default function HomePage({ setPage }) {
       options: { plugins: { legend: { display: false } }, scales: { y: { min: 40, max: 100, grid: { color: 'rgba(0,0,0,.08)' } }, x: { grid: { color: 'rgba(0,0,0,.08)' } } }, animation: { duration: 800 } }
     });
     return () => { donutChart.current?.destroy(); trendChart.current?.destroy(); };
-  }, [data.esgTrend]);
+  }, [data.esgTrend, t]);
 
   const { kpi } = data;
+
+  const equivs = [
+    { icon: '🌳', val: '14,200', label: t('treesLabel') },
+    { icon: '🏊', val: '73',     label: t('poolsLabel') },
+    { icon: '♻️', val: '420 t', label: t('wasteLabel') },
+  ];
 
   return (
     <div>
       {/* Hero */}
       <div style={{ position:'relative', height:400, overflow:'hidden' }}>
-        <img src={fon}
-          alt="Green campus" style={{ width:'100%', height:'100%', objectFit:'cover', filter:'brightness(.85)' }} />
+        <img src={fon} alt="Green campus" style={{ width:'100%', height:'100%', objectFit:'cover', filter:'brightness(.85)' }} />
         <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
           <div style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:'clamp(72px,10vw,130px)', lineHeight:.92, textAlign:'center', color:'#fff', textShadow:'0 4px 30px rgba(0,0,0,.3)' }}>
-          {t('sustainable')}<br/>{t('campus')}
+            {t('sustainable')}<br/>{t('campus')}
           </div>
           <div style={{ fontFamily:"'Space Mono',monospace", fontSize:18, letterSpacing:'.25em', color:'#fff', marginTop:16, fontWeight:700 }}>KBTU</div>
         </div>
       </div>
 
       {/* KPI Strip */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', background:'#4a5c4a' }}>
-        <KPICard
-          label={t('esgScore')}
-          value={kpi.esgScore.value}
-          unit={kpi.esgScore.unit}
-          delta={kpi.esgScore.delta}
-          deltaLabel={` ${kpi.esgScore.deltaLabel}`}
-        />
-        <KPICard
-          label={t('energyConsumption')}
-          value={kpi.energy.value}
-          unit={kpi.energy.unit}
-          delta={kpi.energy.delta}
-          deltaLabel={`% ${kpi.energy.deltaLabel}`}
-        />
-        <KPICard
-          label={t('waterUsage')}
-          value={kpi.water.value}
-          unit={kpi.water.unit}
-          delta={kpi.water.delta}
-          deltaLabel={`% ${kpi.water.deltaLabel}`}
-        />
-
-        <KPICard
-          label={t('wasteDiverted')}
-          value={`${kpi.wasteDiv.value}%`}
-          unit={kpi.wasteDiv.unit}
-          delta={kpi.wasteDiv.delta}
-          deltaLabel={`pp ${kpi.wasteDiv.deltaLabel}`}
-        />
+      <div style={{ position:'relative' }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', background:'#4a5c4a' }}>
+          <Tooltip text={t('tooltip_esg')}>
+            <KPICard label={t('esgScore')} value={kpi.esgScore.value} unit={kpi.esgScore.unit} delta={kpi.esgScore.delta} deltaLabel={` ${kpi.esgScore.deltaLabel}`} />
+          </Tooltip>
+          <Tooltip text={t('tooltip_energy')}>
+            <KPICard label={t('energyConsumption')} value={kpi.energy.value} unit={kpi.energy.unit} delta={kpi.energy.delta} deltaLabel={`% ${kpi.energy.deltaLabel}`} />
+          </Tooltip>
+          <Tooltip text={t('tooltip_water')}>
+            <KPICard label={t('waterUsage')} value={kpi.water.value} unit={kpi.water.unit} delta={kpi.water.delta} deltaLabel={`% ${kpi.water.deltaLabel}`} />
+          </Tooltip>
+          <Tooltip text={t('tooltip_waste')}>
+            <KPICard label={t('wasteDiverted')} value={`${kpi.wasteDiv.value}%`} unit={kpi.wasteDiv.unit} delta={kpi.wasteDiv.delta} deltaLabel={`pp ${kpi.wasteDiv.deltaLabel}`} />
+          </Tooltip>
+        </div>
+        {isAdmin && (
+          <button
+            onClick={() => setShowKPIEdit(true)}
+            style={{ position:'absolute', top:8, right:12, background:'rgba(255,255,255,.15)', color:'#fff', border:'1px solid rgba(255,255,255,.3)', borderRadius:8, padding:'4px 12px', fontSize:12, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontWeight:600 }}>
+            {t('edit_data')}
+          </button>
+        )}
       </div>
+      {showKPIEdit && <KPIEditModal onClose={() => setShowKPIEdit(false)} />}
 
       {/* Content */}
       <div style={section}>
@@ -105,11 +102,11 @@ export default function HomePage({ setPage }) {
               <div style={{ flex:1, maxWidth:200 }}><canvas ref={donutRef} /></div>
               <div style={{ flex:1, display:'flex', flexDirection:'column', gap:10 }}>
                 {[
-                    [t('energy'),'#2d5a3d','41%'],
-                    [t('water'),'#5a8a6a','24%'],
-                    [t('waste'),'#8ab890','19%'],
-                    [t('greenInitiatives'),'#b8d4bc','16%']
-                  ].map(([l,c,v]) => (
+                  [t('energy'), '#2d5a3d', '41%'],
+                  [t('water'),  '#5a8a6a', '24%'],
+                  [t('waste'),  '#8ab890', '19%'],
+                  [t('greenInitiatives'), '#b8d4bc', '16%']
+                ].map(([l,c,v]) => (
                   <div key={l} style={{ display:'flex', alignItems:'center', gap:8 }}>
                     <span style={{ width:14, height:14, borderRadius:3, background:c, display:'inline-block' }} />
                     <span style={{ fontSize:13, color:'#3d4f3d' }}>{l} — {v}</span>
@@ -125,13 +122,11 @@ export default function HomePage({ setPage }) {
         </div>
 
         {/* Equivalences */}
-        <div style={{ color:'#fff', fontFamily:"'Space Mono',monospace", fontSize:11, letterSpacing:'.15em', textTransform:'uppercase', marginBottom:10 }}>Impact Equivalences</div>
+        <div style={{ color:'#fff', fontFamily:"'Space Mono',monospace", fontSize:11, letterSpacing:'.15em', textTransform:'uppercase', marginBottom:10 }}>
+          {t('impactEquivalences')}
+        </div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:16 }}>
-          {[
-            { icon:'🌳', val:'14,200', label:'Trees planted equivalent\nfrom energy savings in 2023' },
-            { icon:'🏊', val:'73', label:'Olympic pools of water saved\nvs 2020 baseline' },
-            { icon:'♻️', val:'420 t', label:'Waste diverted from landfill\nthrough recycling programs' }
-          ].map(e => (
+          {equivs.map(e => (
             <div key={e.val} style={{ background:'#2d5a3d', borderRadius:14, padding:22, color:'#fff', display:'flex', flexDirection:'column', gap:8 }}>
               <div style={{ fontSize:32 }}>{e.icon}</div>
               <div style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:36, lineHeight:1 }}>{e.val}</div>
@@ -143,12 +138,12 @@ export default function HomePage({ setPage }) {
 
       {/* Footer */}
       <div style={{ background:'#fff', padding:'28px 48px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <div style={{ fontSize:11, color:'#888' }}>OUR WEBSITE<br/><strong style={{ color:'#1a2a1a', fontSize:13 }}>WWW.KBTU.KZ</strong></div>
-        <button style={startBtn} onClick={() => setPage('energy')}>{t('start')} → &nbsp;</button>
+        <div style={{ fontSize:11, color:'#888' }}>{t('ourWebsite')}<br/><strong style={{ color:'#1a2a1a', fontSize:13 }}>WWW.KBTU.KZ</strong></div>
+        <button style={startBtn} onClick={() => setPage('energy')}>{t('start')} →</button>
       </div>
     </div>
   );
 }
 
 const section = { padding:48, background:'#7d8f7d' };
-const startBtn = { background:'#2d5a3d', color:'#fff', border:'3px solid #2d5a3d', padding:'16px 40px', fontFamily:"'Bebas Neue',sans-serif", fontSize:24, letterSpacing:'.1em', borderRadius:50, cursor:'pointer', display:'flex', alignItems:'center', gap:12 };
+const startBtn = { background:'#2d5a3d', color:'#fff', border:'3px solid #2d5a3d', padding:'16px 40px', fontFamily:"'Bebas Neue',sans-serif", fontSize:24, letterSpacing:'.1em', borderRadius:50, cursor:'pointer' };

@@ -7,10 +7,10 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import L from "leaflet";
-import { useData } from "../DataContext";
-import { useLang } from "../LangContext";
+import { useData } from "../../DataContext";
+import { useLang } from "../../LangContext";
 import "leaflet/dist/leaflet.css";
-import { t } from "../translations";
+import { t } from "../../translations";
 
 // Fix default marker icons
 import markerShadow from "leaflet/dist/images/marker-shadow.png";

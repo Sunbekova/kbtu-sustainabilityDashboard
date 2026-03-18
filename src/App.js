@@ -4,10 +4,13 @@ import { LangProvider } from './LangContext';
 import { Nav, AdminBar } from './components/UI';
 import TableEditor from './components/TableEditor';
 import SettingsPanel from './components/SettingsPanel';
-import HomePage from './components/HomePage';
-import EnergyPage from './components/EnergyPage';
-import { EmissionsPage, WaterPage, WastePage, EnvironmentPage } from './components/OtherPages';
-import MapPage from './components/MapPage';
+import HomePage from './components/pages/HomePage';
+import EnergyPage from './components/pages/EnergyPage';
+import EmissionsPage   from './components/pages/EmissionsPage';
+import WaterPage       from './components/pages/WaterPage';
+import WastePage       from './components/pages/WastePage';
+import EnvironmentPage from './components/pages/EnvironmentPage';
+import MapPage from './components/pages/MapPage';
 
 const fontLink = document.createElement('link');
 fontLink.rel = 'stylesheet';
