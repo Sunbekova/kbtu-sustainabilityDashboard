@@ -12,12 +12,10 @@ import { useLang } from "../../LangContext";
 import "leaflet/dist/leaflet.css";
 import { t } from "../../translations";
 
-// Fix default marker icons
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
 delete L.Icon.Default.prototype._getIconUrl;
 
-// ─── Categories (keys only) ───────────────────
 const CATEGORIES = [
   "tree",
   "recycling",
@@ -30,7 +28,6 @@ const CATEGORIES = [
   "composting",
 ];
 
-// Colors per category
 const CATEGORY_COLORS = {
   tree: "#2d5a3d",
   recycling: "#5a8a6a",
@@ -43,7 +40,6 @@ const CATEGORY_COLORS = {
   composting: "#6aa84f",
 };
 
-// Emoji per category (for marker)
 const CATEGORY_EMOJI = {
   tree: "🌳",
   recycling: "♻️",
@@ -56,7 +52,6 @@ const CATEGORY_EMOJI = {
   composting: "🌱",
 };
 
-// Create custom icon
 const createIcon = (cat) =>
   L.divIcon({
     html: `
@@ -78,7 +73,6 @@ const createIcon = (cat) =>
     iconSize: [32, 32],
   });
 
-// ─── Empty point ─────────────────────────────
 const EMPTY_POINT = {
   lat: "",
   lng: "",
@@ -89,7 +83,6 @@ const EMPTY_POINT = {
   note: "",
 };
 
-// ─── Map click handler ───────────────────────
 function MapClickHandler({ isAdmin, setShowModal, setFormData }) {
   useMapEvents({
     click(e) {
@@ -108,7 +101,6 @@ function MapClickHandler({ isAdmin, setShowModal, setFormData }) {
   return null;
 }
 
-// ─── Component ───────────────────────────────
 export default function MapPage() {
   const { data, isAdmin, importTable, pushToSheets, config } = useData();
   const { lang } = useLang();
@@ -120,7 +112,6 @@ export default function MapPage() {
   const [formData, setFormData] = useState(EMPTY_POINT);
   const [editingPoint, setEditingPoint] = useState(null);
 
-  // Toggle multi-filter
   const toggleCat = (cat) => {
     setFilterCats((prev) =>
       prev.includes(cat)

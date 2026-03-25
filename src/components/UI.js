@@ -1,6 +1,7 @@
 import React from 'react';
 import { useData } from '../DataContext';
 import { useLang } from '../LangContext';
+import { parseMultiSheetFile, exportAllDataExcel } from '../importUtils';
 
 // ── Language Switcher ────────────────────────────────────
 export function LangSwitcher() {
@@ -19,7 +20,7 @@ export function LangSwitcher() {
 
 // ── Navigation ────────────────────────────────────────────
 export function Nav({ activePage, setPage, onSettings }) {
-  const { isAdmin, logout, syncStatus, config } = useData();
+  const { isAdmin, syncStatus, config } = useData();
   const { t } = useLang();
   const pages = ['home','energy','emissions','water','waste','environment', 'map'];
   const labelKeys = ['nav_home','nav_energy','nav_emissions','nav_water','nav_waste','nav_environment', 'nav_map'];
@@ -48,7 +49,9 @@ export function Nav({ activePage, setPage, onSettings }) {
         )}
         {isAdmin && <span style={{ fontSize:11, background:'#2d5a3d', color:'#fff', borderRadius:20, padding:'3px 10px', fontWeight:700 }}>✏️ ADMIN</span>}
         <LangSwitcher />
-        <button onClick={onSettings} style={{ background:'none', border:'1px solid #ddd', borderRadius:8, padding:'5px 10px', fontSize:12, cursor:'pointer', color:'#555' }}>⚙️</button>
+        {isAdmin && (<button onClick={onSettings} 
+          style={{ background:'none', border:'1px solid #ddd', borderRadius:8, padding:'5px 10px', fontSize:12, cursor:'pointer', color:'#555' }}>⚙️</button>
+        )}
         <span style={brandStyle}>@ESGINST</span>
       </div>
     </nav>
@@ -57,7 +60,7 @@ export function Nav({ activePage, setPage, onSettings }) {
 
 // ── Admin Bar ─────────────────────────────────────────────
 export function AdminBar() {
-  const { isAdmin, login, logout, fetchFromSheets, config } = useData();
+  const { isAdmin, login, logout, fetchFromSheets, config, data, importTable } = useData();
   const { t } = useLang();
   const [pw, setPw] = React.useState('');
   const [err, setErr] = React.useState('');
@@ -69,7 +72,7 @@ export function AdminBar() {
   };
 
   return (
-    <div style={adminBarStyle}>
+    <div style={adminBarStyle} className="admin-bar-wrap">
       {!isAdmin ? (
         <>
           {showLogin ? (
@@ -89,10 +92,16 @@ export function AdminBar() {
       ) : (
         <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
           <span style={{ color:'#8ef08e', fontSize:12 }}>{t('admin_logged')}</span>
+      
           {config.dataSource === 'sheets' && (
-            <button style={{ ...abBtn, background:'#1a5c3a' }} onClick={fetchFromSheets}>{t('refresh_sheets')}</button>
+            <button style={{ ...abBtn, background:'#1a5c3a' }} onClick={fetchFromSheets}>
+              {t('refresh_sheets')}
+            </button>
           )}
-          <button style={{ ...abBtn, background:'#555' }} onClick={logout}>{t('logout')}</button>
+
+          <button style={{ ...abBtn, background:'#555' }} onClick={logout}>
+            {t('logout')}
+          </button>
         </div>
       )}
     </div>
@@ -175,7 +184,7 @@ export function MetricCard({ label, bigValue, unit, note, children }) {
 }
 
 // ── Export Bar ────────────────────────────────────────────
-export function ExportBar({ onCSV, onPNG }) {
+export function ExportBar({ onCSV, onPNG, onPDF }) {
   const { t } = useLang();
   return (
     <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginBottom:20 }}>

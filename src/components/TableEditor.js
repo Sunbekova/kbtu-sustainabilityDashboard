@@ -88,7 +88,7 @@ export default function TableEditor({ section, title, onClose }) {
         {/* Import / Export bar */}
         <div style={toolBar}>
           <button style={btnSecondary} onClick={() => fileRef.current.click()} disabled={importing}>
-            📂 Import Excel / CSV
+            Import Excel / CSV
           </button>
           <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display:'none' }} onChange={handleFileImport} />
           <button style={btnSecondary} onClick={handleExport}>⬇ Export CSV</button>

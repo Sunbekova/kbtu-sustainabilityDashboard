@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useData } from '../DataContext';
 
 export default function SettingsPanel({ onClose }) {
+  const { isAdmin } = useData();
   const { config, updateConfig, fetchFromSheets, syncStatus, resetToDefaults } = useData();
   const [form, setForm] = useState({ ...config });
   const [testing, setTesting] = useState(false);
@@ -106,16 +107,17 @@ export default function SettingsPanel({ onClose }) {
         </section>
 
         {/* Security */}
-        <section style={section}>
-          <div style={sectionTitle}>🔒 Security</div>
-          <div style={fieldGroup}>
-            <label style={label}>Admin Password</label>
-            <input type="password" style={input} value={form.adminPassword}
-              onChange={e => set('adminPassword', e.target.value)} />
-            <div style={hint}>Used for admin login in the dashboard AND in the Apps Script (must match).</div>
-          </div>
-        </section>
-
+        {isAdmin && (
+          <section style={section}>
+            <div style={sectionTitle}>🔒 Security</div>
+            <div style={fieldGroup}>
+              <label style={label}>Admin Password</label>
+              <input type="password" style={input} value={form.adminPassword}
+                onChange={e => set('adminPassword', e.target.value)} />
+              <div style={hint}>Used for admin login in the dashboard AND in the Apps Script (must match).</div>
+            </div>
+          </section>
+        )}
         {/* Setup Guide */}
         <section style={{ ...section, background:'#f0f6f0', borderRadius:10, padding:16 }}>
           <div style={{ ...sectionTitle, marginBottom:8 }}>📖 Quick Setup Guide</div>
@@ -131,13 +133,15 @@ export default function SettingsPanel({ onClose }) {
         </section>
 
         {/* Danger zone */}
-        <section style={{ ...section, borderTop:'2px solid #fde8e8', paddingTop:16 }}>
-          <div style={{ fontSize:12, fontWeight:700, color:'#c44', marginBottom:10, textTransform:'uppercase', letterSpacing:'.1em' }}>⚠️ Danger Zone</div>
-          <button style={{ ...btnSecondary, borderColor:'#c44', color:'#c44' }}
-            onClick={() => { if (window.confirm('Reset all data to factory defaults?')) { resetToDefaults(); onClose(); } }}>
-            🔄 Reset all data to defaults
-          </button>
-        </section>
+        {isAdmin && (
+          <section style={{ ...section, borderTop:'2px solid #fde8e8', paddingTop:16 }}>
+            <div style={{ fontSize:12, fontWeight:700, color:'#c44', marginBottom:10, textTransform:'uppercase', letterSpacing:'.1em' }}>⚠️ Danger Zone</div>
+            <button style={{ ...btnSecondary, borderColor:'#c44', color:'#c44' }}
+              onClick={() => { if (window.confirm('Reset all data to factory defaults?')) { resetToDefaults(); onClose(); } }}>
+              🔄 Reset all data to defaults
+            </button>
+          </section>
+        )}
 
         <div style={{ display:'flex', justifyContent:'flex-end', gap:12, marginTop:8 }}>
           <button style={btnSecondary} onClick={onClose}>Cancel</button>
