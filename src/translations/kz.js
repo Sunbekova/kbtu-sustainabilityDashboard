@@ -161,6 +161,9 @@ export const kz = {
       settings_title: '⚙️ Дашборд баптаулары',
       save_settings: '💾 Баптауларды сақтау',
       our_website: 'БІЗДІҢ САЙТ',
+      export_csv: '⬇ CSV',
+      export_png: '⬇ PNG',
+      export_pdf: '⬇ PDF',
 
       // Map
       nav_map: 'Карта',

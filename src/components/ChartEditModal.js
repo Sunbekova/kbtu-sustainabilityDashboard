@@ -108,7 +108,7 @@ export default function ChartEditModal({
 
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:16 }}>
           {addable
-            ? <button style={btnSecondary} onClick={addRow}>+ {t('add_row')}</button>
+            ? <button style={btnSecondary} onClick={addRow}>{t('add_row')}</button>
             : <span />
           }
           <div style={{ display:'flex', gap:10 }}>

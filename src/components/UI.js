@@ -98,6 +98,142 @@ export function AdminBar() {
               {t('refresh_sheets')}
             </button>
           )}
+      
+          {/* ✅ Excel Import (hidden input) */}
+          <input
+            id="global-excel-import"
+            type="file"
+            accept=".xlsx,.xls"
+            style={{ display: 'none' }}
+            onChange={async (e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+      
+              try {
+                const sheets = await parseMultiSheetFile(file);
+      
+                const mapping = {
+                  esgtrend: 'esgTrend',
+                  energytrend: 'energyTrend',
+                  buildingsenergy: 'buildingsEnergy',
+                  emissionstrend: 'emissionsTrend',
+                  watertrend: 'waterTrend',
+                  buildingswater: 'buildingsWater',
+                  wastetrend: 'wasteTrend',
+                  mappoints: 'mapPoints',
+                  impactcategories: 'impactCategories',
+                };
+      
+                Object.entries(mapping).forEach(([sheetKey, dataKey]) => {
+                  if (sheets[sheetKey]?.length) {
+                    importTable(dataKey, sheets[sheetKey]);
+                  }
+                });
+      
+                if (sheets.emissionsbysource?.length) {
+                  const total = sheets.emissionsbysource.reduce(
+                    (s, r) => s + Number(r.tco2e || 0), 0
+                  );
+                  importTable('emissions', {
+                    ...data.emissions,
+                    bySource: sheets.emissionsbysource,
+                    total
+                  });
+                }
+      
+                if (sheets.wastebytype?.length) {
+                  const total = sheets.wastebytype.reduce(
+                    (s, r) => s + Number(r.tonnes || 0), 0
+                  );
+                  importTable('waste', {
+                    ...data.waste,
+                    byType: sheets.wastebytype,
+                    total
+                  });
+                }
+      
+                if (sheets.sdgprogress?.length) {
+                  importTable('environment', {
+                    ...data.environment,
+                    sdgProgress: sheets.sdgprogress
+                  });
+                }
+      
+                if (sheets.initiatives?.length) {
+                  importTable('environment', {
+                    ...data.environment,
+                    initiatives: sheets.initiatives
+                  });
+                }
+      
+                if (sheets.transport?.length) {
+                  importTable('environment', {
+                    ...data.environment,
+                    transport: sheets.transport
+                  });
+                }
+      
+                if (sheets.procurement?.length) {
+                  importTable('environment', {
+                    ...data.environment,
+                    procurement: sheets.procurement
+                  });
+                }
+      
+                alert('✅ Data imported successfully from Excel!');
+              } catch (err) {
+                alert('❌ Import failed: ' + err.message);
+              }
+      
+              e.target.value = '';
+            }}
+          />
+      
+          {/* ✅ Import Button */}
+          <button
+            style={{ ...abBtn, background:'#1a5c3a' }}
+            onClick={() => document.getElementById('global-excel-import').click()}
+          >
+            {t('import_excel')}
+          </button>
+      
+          {/* ✅ Export Button */}
+          <button
+            style={{ ...abBtn, background:'#1a5c3a' }}
+            onClick={() => exportAllDataExcel(data)}
+          >
+            ⬇ Excel
+          </button>
+
+          <button
+            style={{ ...abBtn, background:'#444' }}
+            onClick={async () => {
+              const XLSX = await import('xlsx');
+              const wb = XLSX.utils.book_new();
+              const templates = {
+                EsgTrend:         [{ year: 2019, score: 52 }, { year: 2020, score: 56 }],
+                EnergyTrend:      [{ year: 2019, naturalGas: 20000, thermal: 13000, electricity: 12000 }],
+                BuildingsEnergy:  [{ name: 'Main Building', mwh: 8500, kwh_m2: 185, delta: -5 }],
+                EmissionsTrend:   [{ year: 2019, actual: 14000, target: 13000 }],
+                EmissionsBySource:[{ source: 'Gas Combustion', tco2e: 4200 }],
+                WaterTrend:       [{ year: 2019, total: 210000, recycled: 45000 }],
+                BuildingsWater:   [{ name: 'Main Building', drinking: 45000, technical: 28000, irrigation: 12000 }],
+                WasteTrend:       [{ year: 2019, actual: 52, target: 60 }],
+                WasteByType:      [{ type: 'Mixed', tonnes: 220, color: '#888' }],
+                SDGProgress:      [{ sdg: 6, label: 'Clean Water', pct: 65, color: '#26bde2' }],
+                Initiatives:      [{ category: 'Energy Efficiency', count: 12 }],
+                Transport:        [{ mode: 'Public Transport', pct: 42 }],
+                Procurement:      [{ label: 'Eco-certified products', pct: 62 }],
+                MapPoints:        [{ id: 1, lat: 51.1801, lng: 71.4460, category: 'tree', title: 'Example', building: 'Main', year: 2023, note: '' }],
+              };
+              Object.entries(templates).forEach(([name, rows]) => {
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), name);
+              });
+              XLSX.writeFile(wb, 'kbtu_dashboard_template.xlsx');
+            }}
+          >
+            📄 Template
+          </button>
 
           <button style={{ ...abBtn, background:'#555' }} onClick={logout}>
             {t('logout')}

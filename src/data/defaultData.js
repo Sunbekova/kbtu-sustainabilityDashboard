@@ -17,7 +17,7 @@ export const DEFAULT_DATA = {
     { label: 'Green Initiatives', value: 16, color: '#b8d4bc' },
   ],
   
-  // ── KPI Summary ──────────────────────────────────────────────
+  //KPI Summary
   kpi: {
     esgScore:   { value: 74,      unit: "/ 100",    delta: +6,   deltaLabel: "vs 2022" },
     energy:     { value: 42800,   unit: "MWh/year", delta: -8,   deltaLabel: "% vs 2022" },
@@ -32,7 +32,7 @@ export const DEFAULT_DATA = {
     electricity: { total: 11860, unit: "MWh", vsLastYear: -11, solarMWh: 2140, renewablePct: 18, target: 50 }
   },
 
-  // ── Energy trend by year ──────────────────────────────────────
+  //Energy trend by year
   energyTrend: [
     { year: 2018, naturalGas: 22000, thermal: 15200, electricity: 14800 },
     { year: 2019, naturalGas: 21500, thermal: 14800, electricity: 14200 },
@@ -42,7 +42,7 @@ export const DEFAULT_DATA = {
     { year: 2023, naturalGas: 18640, thermal: 12300, electricity: 11860 }
   ],
 
-  // ── Top buildings energy ──────────────────────────────────────
+  //Top buildings energy
   buildingsEnergy: [
     { name: "Research Hub",   mwh: 8420, kwh_m2: 210, delta: +2 },
     { name: "Main Building",  mwh: 7180, kwh_m2: 165, delta: -8 },

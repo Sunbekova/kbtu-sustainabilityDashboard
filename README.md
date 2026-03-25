@@ -49,7 +49,7 @@ npm start
 
 ### Method 1: Excel / CSV Upload (recommended)
 1. Open the dashboard in browser
-2. Click **"🔒 Admin Login"** (top bar) → password: `kbtu2024`
+2. Click **"🔒 Admin Login"** (top bar)
 3. Navigate to any chart — click **"✏️ Edit Data"** button on its card
 4. In the editor popup: click **"📂 Import Excel / CSV"**
 5. Select your `.xlsx` or `.csv` file
@@ -74,16 +74,6 @@ Each section expects specific column names. Match these exactly:
 | buildingsWater | `name, drinking, technical, irrigation` |
 | wasteTrend | `year, actual, target` |
 | esgTrend | `year, score` |
-
----
-
-## 🔐 Changing the Admin Password
-
-In `/src/data/defaultData.js`, change:
-```js
-adminPassword: "kbtu2024"  // ← change this
-```
-Then rebuild and redeploy.
 
 ---
 

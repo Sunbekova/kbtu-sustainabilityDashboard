@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Chart, registerables } from 'chart.js';
 import { useData } from '../../DataContext';
 import { KPICard, ChartCard, PageFooter, ExportBar } from '../UI';
-import { exportAllDataCSV } from '../../importUtils';
+import { exportPageCSV, exportDashboardPDF } from '../../importUtils';
 import { useLang } from '../../LangContext';
 import { Tooltip } from '../Tooltip';
 import KPIEditModal from '../KPIEditModal';
@@ -147,13 +147,13 @@ export default function HomePage({ setPage }) {
             <KPICard label={t('esgScore')} value={kpi.esgScore.value} unit={kpi.esgScore.unit} delta={kpi.esgScore.delta} deltaLabel={` ${kpi.esgScore.deltaLabel}`} />
           </Tooltip>
           <Tooltip text={t('tooltip_energy')}>
-            <KPICard label={t('energyConsumption')} value={kpi.energy.value} unit={kpi.energy.unit} delta={kpi.energy.delta} deltaLabel={`% ${kpi.energy.deltaLabel}`} />
+            <KPICard label={t('energyConsumption')} value={kpi.energy.value} unit={kpi.energy.unit} delta={kpi.energy.delta} deltaLabel={` ${kpi.energy.deltaLabel}`} />
           </Tooltip>
           <Tooltip text={t('tooltip_water')}>
-            <KPICard label={t('waterUsage')} value={kpi.water.value} unit={kpi.water.unit} delta={kpi.water.delta} deltaLabel={`% ${kpi.water.deltaLabel}`} />
+            <KPICard label={t('waterUsage')} value={kpi.water.value} unit={kpi.water.unit} delta={kpi.water.delta} deltaLabel={` ${kpi.water.deltaLabel}`} />
           </Tooltip>
           <Tooltip text={t('tooltip_waste')}>
-            <KPICard label={t('wasteDiverted')} value={`${kpi.wasteDiv.value}%`} unit={kpi.wasteDiv.unit} delta={kpi.wasteDiv.delta} deltaLabel={`pp ${kpi.wasteDiv.deltaLabel}`} />
+            <KPICard label={t('wasteDiverted')} value={`${kpi.wasteDiv.value}%`} unit={kpi.wasteDiv.unit} delta={kpi.wasteDiv.delta} deltaLabel={` ${kpi.wasteDiv.deltaLabel}`} />
           </Tooltip>
         </div>
         {isAdmin && (
@@ -163,8 +163,16 @@ export default function HomePage({ setPage }) {
 
       {/* Content */}
       <div style={section}>
-        <ExportBar onCSV={() => exportAllDataCSV(data)} onPNG={() => alert('Use browser screenshot or Print → Save as PDF')} />
-
+      <ExportBar
+        onExel
+        onCSV={() => exportPageCSV(activePage, data, t)}
+        onPNG={() => alert('Use browser screenshot or Print → Save as PDF')}
+        onPDF={async () => {
+          const btn = document.activeElement;
+          btn?.blur();
+          await exportDashboardPDF(setPage);
+        }}
+      />
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:20 }}>
 
           {/* Donut chart */}

@@ -161,6 +161,9 @@ export const ru = {
         reset_confirm: 'Сбросить все данные до заводских настроек?',
         settings_title: '⚙️ Настройки дашборда',
         save_settings: '💾 Сохранить настройки',
+        export_csv: '⬇ CSV',
+        export_png: '⬇ PNG',
+        export_pdf: '⬇ PDF',
   
         // Map
         nav_map: 'Карта',
