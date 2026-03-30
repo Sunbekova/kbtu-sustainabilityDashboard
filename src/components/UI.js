@@ -244,6 +244,58 @@ export function AdminBar() {
   );
 }
 
+// ── Dashboard Filters ───────────────────────────────────
+export function DashboardFiltersBar() {
+  const { dashboardFilters, setDashboardFilter, filterOptions } = useData();
+  const { t } = useLang();
+
+  return (
+    <div style={filtersWrap}>
+      <label style={filterField}>
+        <span style={filterLabel}>{t('dashboard_filter_year_period')}</span>
+        <select
+          value={dashboardFilters.year}
+          onChange={(e) => setDashboardFilter('year', e.target.value)}
+          style={filterSelect}
+        >
+          <option value="all">{t('map_all')}</option>
+          {filterOptions.years.map((year) => (
+            <option key={year} value={year}>{year}</option>
+          ))}
+        </select>
+      </label>
+
+      <label style={filterField}>
+        <span style={filterLabel}>{t('map_filter_building')}</span>
+        <select
+          value={dashboardFilters.building}
+          onChange={(e) => setDashboardFilter('building', e.target.value)}
+          style={filterSelect}
+        >
+          <option value="all">{t('map_all')}</option>
+          {filterOptions.buildings.map((building) => (
+            <option key={building} value={building}>{building}</option>
+          ))}
+        </select>
+      </label>
+
+      <label style={filterField}>
+        <span style={filterLabel}>{t('dashboard_filter_faculty')}</span>
+        <select
+          value={dashboardFilters.faculty}
+          onChange={(e) => setDashboardFilter('faculty', e.target.value)}
+          style={filterSelect}
+        >
+          <option value="all">{t('map_all')}</option>
+          {filterOptions.faculties.map((faculty) => (
+            <option key={faculty} value={faculty}>{faculty}</option>
+          ))}
+        </select>
+      </label>
+    </div>
+  );
+}
+
 // ── KPI Card ──────────────────────────────────────────────
 export function KPICard({ label, value, unit, delta, deltaLabel }) {
   const isPositive = delta > 0;
@@ -352,6 +404,19 @@ const cardTitle = { fontFamily:"'Space Mono',monospace", fontSize:11, letterSpac
 const editBtn   = { background:'rgba(45,90,61,.15)', border:'1px solid rgba(45,90,61,.3)', borderRadius:7, padding:'4px 10px', fontSize:11, color:'#2d5a3d', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontWeight:600 };
 const footerStyle = { background:'#fff', padding:'24px 48px', display:'flex', alignItems:'center', justifyContent:'space-between' };
 const nextBtn = { background:'#2d5a3d', color:'#fff', border:'none', padding:'14px 38px', fontFamily:"'Bebas Neue',sans-serif", fontSize:22, letterSpacing:'.12em', borderRadius:50, cursor:'pointer' };
+const filtersWrap = {
+  display:'grid',
+  gridTemplateColumns:'repeat(3, minmax(170px, 1fr))',
+  gap:12,
+  background:'rgba(255,255,255,.2)',
+  border:'1px solid rgba(255,255,255,.25)',
+  borderRadius:14,
+  padding:12,
+  marginBottom:20,
+};
+const filterField = { display:'flex', flexDirection:'column', gap:6 };
+const filterLabel = { fontFamily:"'Space Mono',monospace", fontSize:10, letterSpacing:'.08em', textTransform:'uppercase', color:'#f4f8f4', fontWeight:700 };
+const filterSelect = { height:34, borderRadius:8, border:'1px solid rgba(0,0,0,.2)', padding:'0 10px', background:'rgba(255,255,255,.9)', color:'#1a2a1a', fontFamily:"'DM Sans',sans-serif", fontSize:13 };
 const metricCard = { background:'#c8d0c8', borderRadius:16, padding:'28px 32px', color:'#1a2a1a' };
 const metricLabel = { fontSize:12, letterSpacing:'.12em', textTransform:'uppercase', color:'#fff', background:'#2d5a3d', display:'inline-block', padding:'4px 12px', borderRadius:20, marginBottom:16 };
 const metricBig = { fontFamily:"'Bebas Neue',sans-serif", fontSize:56, color:'#2d5a3d', lineHeight:1 };

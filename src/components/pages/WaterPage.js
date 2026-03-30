@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Chart, registerables } from 'chart.js';
 import { useData } from '../../DataContext';
-import { ChartCard, PageFooter, MetricCard, ProgressBar } from '../UI';
+import { ChartCard, DashboardFiltersBar, PageFooter, MetricCard, ProgressBar } from '../UI';
 import { useLang } from '../../LangContext';
 import { Tooltip } from '../Tooltip';
 import CardEditModal from '../CardEditModal';
@@ -10,7 +10,7 @@ import ChartEditModal from '../ChartEditModal';
 Chart.register(...registerables);
 
 export default function WaterPage({ setPage }) {
-  const { data, isAdmin, importTable, pushToSheets, config } = useData();
+  const { data, isAdmin, importTable, pushToSheets, config, dashboardFilters, getFacultyForBuilding } = useData();
   const { t } = useLang();
   const pieRef = useRef(), trendRef = useRef();
   const pieChart = useRef(), trendChart = useRef();
@@ -18,6 +18,37 @@ export default function WaterPage({ setPage }) {
 
   const [editModal, setEditModal] = useState(null);
   const [chartModal, setChartModal] = useState(null);
+
+  const filteredTrend = dashboardFilters.year === 'all'
+    ? waterTrend
+    : waterTrend.filter(r => String(r.year) === dashboardFilters.year);
+
+  const filteredBuildings = buildingsWater.filter((b) => {
+    if (dashboardFilters.building !== 'all' && b.name !== dashboardFilters.building) return false;
+    if (dashboardFilters.faculty !== 'all' && getFacultyForBuilding(b.name) !== dashboardFilters.faculty) return false;
+    return true;
+  });
+
+  const buildingTotal = buildingsWater.reduce((sum, b) => sum + Number(b.drinking || 0) + Number(b.technical || 0) + Number(b.irrigation || 0), 0);
+  const filteredBuildingTotal = filteredBuildings.reduce((sum, b) => sum + Number(b.drinking || 0) + Number(b.technical || 0) + Number(b.irrigation || 0), 0);
+  const hasLocationFilter = dashboardFilters.building !== 'all' || dashboardFilters.faculty !== 'all';
+  const locationFactor = hasLocationFilter
+    ? (buildingTotal > 0 ? filteredBuildingTotal / buildingTotal : 0)
+    : 1;
+
+  const selectedPoint = filteredTrend.length ? filteredTrend[filteredTrend.length - 1] : null;
+  const totalFromYear = Number(selectedPoint?.total);
+  const recycledFromYear = Number(selectedPoint?.recycled);
+  const baseTotal = Number.isFinite(totalFromYear) ? totalFromYear : Number(water.total || 0);
+  const baseRecycledPct = Number.isFinite(totalFromYear) && totalFromYear > 0
+    ? (Number(recycledFromYear || 0) / totalFromYear) * 100
+    : Number(water.recycledPct || 0);
+  const waterView = {
+    ...water,
+    total: Math.round(baseTotal * locationFactor),
+    recycledPct: Number(baseRecycledPct.toFixed(1)),
+    byType: (water.byType || []).map((r) => ({ ...r, m3: Math.round(Number(r.m3 || 0) * locationFactor) })),
+  };
 
   const openWaterEdit = (cardKey) => {
     const defs = {
@@ -126,44 +157,45 @@ export default function WaterPage({ setPage }) {
     pieChart.current = new Chart(pieRef.current, {
       type: 'pie',
       data: {
-        labels: water.byType.map(r => r.type),
-        datasets: [{ data: water.byType.map(r => r.m3), backgroundColor:['#2d5a3d','#5a8a6a','#8ab890','#b8d4bc','#d4e8d4'], borderWidth:0, hoverOffset:8 }]
+        labels: waterView.byType.map(r => r.type),
+        datasets: [{ data: waterView.byType.map(r => r.m3), backgroundColor:['#2d5a3d','#5a8a6a','#8ab890','#b8d4bc','#d4e8d4'], borderWidth:0, hoverOffset:8 }]
       },
       options: { plugins:{ legend:{ position:'right', labels:{ font:{ family:'DM Sans', size:11 } } } } }
     });
     trendChart.current = new Chart(trendRef.current, {
       type: 'line',
       data: {
-        labels: waterTrend.map(r => r.year),
+        labels: filteredTrend.map(r => r.year),
         datasets: [
-          { label: `${t('total_label')} (m³)`, data: waterTrend.map(r => r.total), borderColor:'#2d5a3d', backgroundColor:'rgba(45,90,61,.1)', fill:true, tension:.4, pointRadius:5 },
-          { label: `${t('recycled_rain')} (m³)`, data: waterTrend.map(r => r.recycled), borderColor:'#8ab890', fill:false, tension:.4, pointRadius:4 }
+          { label: `${t('total_label')} (m³)`, data: filteredTrend.map(r => Math.round(Number(r.total || 0) * locationFactor)), borderColor:'#2d5a3d', backgroundColor:'rgba(45,90,61,.1)', fill:true, tension:.4, pointRadius:5 },
+          { label: `${t('recycled_rain')} (m³)`, data: filteredTrend.map(r => Math.round(Number(r.recycled || 0) * locationFactor)), borderColor:'#8ab890', fill:false, tension:.4, pointRadius:4 }
         ]
       },
       options: { plugins:{ legend:{ labels:{ font:{ family:'DM Sans' } } } }, scales:{ x:{ grid:{ color:'rgba(0,0,0,.06)' } }, y:{ grid:{ color:'rgba(0,0,0,.06)' }, ticks:{ callback:v=>v.toLocaleString() } } } }
     });
     return () => { pieChart.current?.destroy(); trendChart.current?.destroy(); };
-  }, [water, waterTrend, t]);
+  }, [waterView, filteredTrend, t, locationFactor]);
 
-  const maxVal = Math.max(...buildingsWater.map(b => b.drinking + b.technical + b.irrigation));
+  const maxVal = Math.max(1, ...filteredBuildings.map(b => b.drinking + b.technical + b.irrigation));
 
   return (
     <div style={{ position:'relative', overflow:'hidden' }}>
       <div style={section}>
         <div style={pageTitle}>{t('page_water_title')}</div>
         <div style={pageSub}>{t('page_water_sub')}</div>
+        <DashboardFiltersBar />
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:20, marginBottom:20 }}>
           <Tooltip text={t('tooltip_water_total')}>
             <div style={cardWrap}>
               {isAdmin && <button style={editBtn} onClick={() => openWaterEdit('total')}>✏️</button>}
-              <MetricCard label={t('total_consumption_w')} bigValue={water.total} unit="m³ / year" note={`${t('water_down_2020', { v:12 })} | ${water.perStudent} ${t('m3_per_student')}`} />
+              <MetricCard label={t('total_consumption_w')} bigValue={waterView.total} unit="m³ / year" note={`${t('water_down_2020', { v:12 })} | ${water.perStudent} ${t('m3_per_student')}`} />
             </div>
           </Tooltip>
           <Tooltip text={t('tooltip_recycled')}>
             <div style={cardWrap}>
               {isAdmin && <button style={editBtn} onClick={() => openWaterEdit('recycled')}>✏️</button>}
-              <MetricCard label={t('recycled_rain')} bigValue={`${water.recycledPct}%`} unit={t('of_total')}>
-                <ProgressBar value={water.recycledPct} max={water.recycledTarget * 1.4} label={`${water.recycledPct}%`} targetLabel={`${water.recycledTarget}${t('recycled_target_label')}`} color="#5a8a6a" />
+              <MetricCard label={t('recycled_rain')} bigValue={`${waterView.recycledPct}%`} unit={t('of_total')}>
+                <ProgressBar value={waterView.recycledPct} max={water.recycledTarget * 1.4} label={`${waterView.recycledPct}%`} targetLabel={`${water.recycledTarget}${t('recycled_target_label')}`} color="#5a8a6a" />
               </MetricCard>
             </div>
           </Tooltip>
@@ -196,7 +228,7 @@ export default function WaterPage({ setPage }) {
                 </tr>
               </thead>
               <tbody>
-                {buildingsWater.map(b => {
+                {filteredBuildings.map(b => {
                   const total = b.drinking + b.technical + b.irrigation;
                   return (
                     <tr key={b.name}>

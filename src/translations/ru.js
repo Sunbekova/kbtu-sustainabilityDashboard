@@ -172,6 +172,8 @@ export const ru = {
         map_filter_category: 'Категория',
         map_filter_building: 'Здание',
         map_filter_year: 'Год',
+        dashboard_filter_year_period: 'Год / период',
+        dashboard_filter_faculty: 'Факультет',
         map_all: 'Все',
         map_add_point: '+ Добавить объект',
         map_edit_point: 'Редактировать',

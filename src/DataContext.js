@@ -1,9 +1,17 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { DEFAULT_DATA } from './data/defaultData';
 
 const DataContext = createContext(null);
 const STORAGE_KEY  = 'kbtu_dashboard_data';
 const CONFIG_KEY   = 'kbtu_dashboard_config';
+
+const BUILDING_FACULTY_MAP = {
+  'Main Building': 'Engineering',
+  'Research Hub': 'IT & Data Science',
+  'Sports Complex': 'Student Life',
+  'Library': 'Business & Economics',
+  'Dormitories': 'Student Life',
+};
 
 const DEFAULT_CONFIG = {
   sheetsApiUrl: '',
@@ -20,6 +28,7 @@ export function DataProvider({ children }) {
   const [isAdmin,   setIsAdmin]   = useState(false);
   const [editingTable, setEditingTable] = useState(null);
   const [syncStatus, setSyncStatus] = useState({ state: 'idle', msg: '', ts: null });
+  const [dashboardFilters, setDashboardFilters] = useState({ year: 'all', building: 'all', faculty: 'all' });
   const refreshTimer = useRef(null);
 
   useEffect(() => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {} }, [data]);
@@ -69,6 +78,42 @@ export function DataProvider({ children }) {
   const importTable     = useCallback((section, rows) => setData(prev => ({ ...prev, [section]: rows })), []);
   const resetToDefaults = useCallback(() => { setData(DEFAULT_DATA); localStorage.removeItem(STORAGE_KEY); }, []);
   const updateConfig    = useCallback((patch) => setConfig(prev => ({ ...prev, ...patch })), []);
+  const setDashboardFilter = useCallback((key, value) => {
+    setDashboardFilters(prev => ({ ...prev, [key]: value }));
+  }, []);
+
+  const getFacultyForBuilding = useCallback((buildingName) => {
+    return BUILDING_FACULTY_MAP[buildingName] || 'General';
+  }, []);
+
+  const filterOptions = useMemo(() => {
+    const years = [
+      ...(data.energyTrend || []).map(r => Number(r.year)),
+      ...(data.emissionsTrend || []).map(r => Number(r.year)),
+      ...(data.waterTrend || []).map(r => Number(r.year)),
+      ...(data.wasteTrend || []).map(r => Number(r.year)),
+      ...(data.esgTrend || []).map(r => Number(r.year)),
+    ]
+      .filter(Number.isFinite)
+      .map(String);
+
+    const buildings = [
+      ...(data.buildingsEnergy || []).map(r => r.name),
+      ...(data.buildingsWater || []).map(r => r.name),
+      ...(data.mapPoints || []).map(r => r.building),
+    ]
+      .filter(Boolean);
+
+    const uniqueYears = Array.from(new Set(years)).sort((a, b) => Number(a) - Number(b));
+    const uniqueBuildings = Array.from(new Set(buildings)).sort((a, b) => a.localeCompare(b));
+    const uniqueFaculties = Array.from(new Set(uniqueBuildings.map(getFacultyForBuilding))).sort((a, b) => a.localeCompare(b));
+
+    return {
+      years: uniqueYears,
+      buildings: uniqueBuildings,
+      faculties: uniqueFaculties,
+    };
+  }, [data, getFacultyForBuilding]);
 
   return (
     <DataContext.Provider value={{
@@ -76,6 +121,7 @@ export function DataProvider({ children }) {
       setEditingTable, login, logout,
       updateSection, importTable, resetToDefaults,
       fetchFromSheets, pushToSheets, updateConfig,
+      dashboardFilters, setDashboardFilter, filterOptions, getFacultyForBuilding,
     }}>
       {children}
     </DataContext.Provider>

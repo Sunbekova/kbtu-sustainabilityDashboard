@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Chart, registerables } from 'chart.js';
 import { useData } from '../../DataContext';
-import { MetricCard, ChartCard, PageFooter, ProgressBar } from '../UI';
+import { MetricCard, ChartCard, DashboardFiltersBar, PageFooter, ProgressBar } from '../UI';
 import { useLang } from '../../LangContext';
 import { Tooltip } from '../Tooltip';
 import CardEditModal from '../CardEditModal';
@@ -9,13 +9,63 @@ import CardEditModal from '../CardEditModal';
 Chart.register(...registerables);
 
 export default function EnergyPage({ setPage }) {
-  const { data, isAdmin, importTable, pushToSheets, config } = useData();
+  const { data, isAdmin, importTable, pushToSheets, config, dashboardFilters, getFacultyForBuilding } = useData();
   const { t } = useLang();
   const trendRef = useRef();
   const trendChart = useRef();
   const { energy, energyTrend, buildingsEnergy } = data;
 
   const [editModal, setEditModal] = useState(null);
+
+  const yearTrend = dashboardFilters.year === 'all'
+    ? energyTrend
+    : energyTrend.filter(r => String(r.year) === dashboardFilters.year);
+
+  const filteredBuildings = buildingsEnergy.filter((b) => {
+    if (dashboardFilters.building !== 'all' && b.name !== dashboardFilters.building) return false;
+    if (dashboardFilters.faculty !== 'all' && getFacultyForBuilding(b.name) !== dashboardFilters.faculty) return false;
+    return true;
+  });
+
+  const totalBuildingsMWh = buildingsEnergy.reduce((sum, b) => sum + Number(b.mwh || 0), 0);
+  const filteredBuildingsMWh = filteredBuildings.reduce((sum, b) => sum + Number(b.mwh || 0), 0);
+  const hasLocationFilter = dashboardFilters.building !== 'all' || dashboardFilters.faculty !== 'all';
+  const locationFactor = hasLocationFilter
+    ? (totalBuildingsMWh > 0 ? filteredBuildingsMWh / totalBuildingsMWh : 0)
+    : 1;
+
+  const selectedYearRow = yearTrend.length ? yearTrend[yearTrend.length - 1] : null;
+  const prevYearSource = energyTrend.find(r => selectedYearRow && r.year === selectedYearRow.year - 1);
+  const calcVs = (current, previous, fallback) => {
+    if (!previous || !Number.isFinite(previous) || previous === 0) return fallback;
+    return Math.round(((current - previous) / previous) * 100);
+  };
+  const scaleVal = (v) => Math.round(Number(v || 0) * locationFactor);
+
+  const energyView = {
+    naturalGas: {
+      ...energy.naturalGas,
+      total: scaleVal(selectedYearRow ? selectedYearRow.naturalGas : energy.naturalGas.total),
+      vsLastYear: selectedYearRow
+        ? calcVs(selectedYearRow.naturalGas, prevYearSource?.naturalGas, energy.naturalGas.vsLastYear)
+        : energy.naturalGas.vsLastYear,
+    },
+    thermal: {
+      ...energy.thermal,
+      total: scaleVal(selectedYearRow ? selectedYearRow.thermal : energy.thermal.total),
+      vsLastYear: selectedYearRow
+        ? calcVs(selectedYearRow.thermal, prevYearSource?.thermal, energy.thermal.vsLastYear)
+        : energy.thermal.vsLastYear,
+    },
+    electricity: {
+      ...energy.electricity,
+      total: scaleVal(selectedYearRow ? selectedYearRow.electricity : energy.electricity.total),
+      solarMWh: scaleVal(energy.electricity.solarMWh),
+      vsLastYear: selectedYearRow
+        ? calcVs(selectedYearRow.electricity, prevYearSource?.electricity, energy.electricity.vsLastYear)
+        : energy.electricity.vsLastYear,
+    },
+  };
 
   const openEnergyEdit = (type) => {
     const src = energy[type];
@@ -48,46 +98,47 @@ export default function EnergyPage({ setPage }) {
     trendChart.current = new Chart(trendRef.current, {
       type: 'bar',
       data: {
-        labels: energyTrend.map(r => r.year),
+        labels: yearTrend.map(r => r.year),
         datasets: [
-          { label: t('natural_gas'), data: energyTrend.map(r => r.naturalGas), backgroundColor:'#2d5a3d' },
-          { label: t('thermal'),     data: energyTrend.map(r => r.thermal),    backgroundColor:'#5a8a6a' },
-          { label: t('electricity'), data: energyTrend.map(r => r.electricity),backgroundColor:'#8ab890' }
+          { label: t('natural_gas'), data: yearTrend.map(r => scaleVal(r.naturalGas)), backgroundColor:'#2d5a3d' },
+          { label: t('thermal'),     data: yearTrend.map(r => scaleVal(r.thermal)),    backgroundColor:'#5a8a6a' },
+          { label: t('electricity'), data: yearTrend.map(r => scaleVal(r.electricity)),backgroundColor:'#8ab890' }
         ]
       },
       options: { responsive:true, plugins:{ legend:{ labels:{ font:{ family:'DM Sans' } } } }, scales:{ x:{ grid:{ color:'rgba(0,0,0,.06)' } }, y:{ grid:{ color:'rgba(0,0,0,.06)' }, ticks:{ callback:v=>v.toLocaleString() } } } }
     });
     return () => trendChart.current?.destroy();
-  }, [energyTrend, t]);
+  }, [yearTrend, t, locationFactor]);
 
   return (
     <div style={{ position:'relative', overflow:'hidden' }}>
       <div style={section}>
         <div style={pageTitle}>{t('page_energy_title')}</div>
         <div style={pageSub}>{t('page_energy_sub')}</div>
+        <DashboardFiltersBar />
 
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:20, marginBottom:20 }}>
           <Tooltip text={t('tooltip_renewables')}>
             <div style={cardWrap}>
               {isAdmin && <button style={editBtn} onClick={() => openEnergyEdit('naturalGas')}>✏️</button>}
-              <MetricCard label={t('natural_gas')} bigValue={energy.naturalGas.total} unit={`${energy.naturalGas.unit} ${t('total_consumption').toLowerCase()}`} note={t('vs_prior', { v: Math.abs(energy.naturalGas.vsLastYear) })}>
-                <ProgressBar value={energy.naturalGas.baselinePct} label={`${energy.naturalGas.baselinePct}% ${t('baseline')}`} targetLabel={t('target', { v: energy.naturalGas.target })} color="#2d5a3d" />
+              <MetricCard label={t('natural_gas')} bigValue={energyView.naturalGas.total} unit={`${energyView.naturalGas.unit} ${t('total_consumption').toLowerCase()}`} note={t('vs_prior', { v: Math.abs(energyView.naturalGas.vsLastYear) })}>
+                <ProgressBar value={energyView.naturalGas.baselinePct} label={`${energyView.naturalGas.baselinePct}% ${t('baseline')}`} targetLabel={t('target', { v: energyView.naturalGas.target })} color="#2d5a3d" />
               </MetricCard>
             </div>
           </Tooltip>
           <Tooltip text={t('tooltip_renewables')}>
             <div style={cardWrap}>
               {isAdmin && <button style={editBtn} onClick={() => openEnergyEdit('thermal')}>✏️</button>}
-              <MetricCard label={t('thermal')} bigValue={energy.thermal.total} unit={`${energy.thermal.unit} ${t('total_consumption').toLowerCase()}`} note={t('vs_prior', { v: Math.abs(energy.thermal.vsLastYear) })}>
-                <ProgressBar value={energy.thermal.renewablePct} label={`${energy.thermal.renewablePct}% ${t('renewable_heat')}`} targetLabel={t('target', { v: energy.thermal.target })} color="#5a8a6a" />
+              <MetricCard label={t('thermal')} bigValue={energyView.thermal.total} unit={`${energyView.thermal.unit} ${t('total_consumption').toLowerCase()}`} note={t('vs_prior', { v: Math.abs(energyView.thermal.vsLastYear) })}>
+                <ProgressBar value={energyView.thermal.renewablePct} label={`${energyView.thermal.renewablePct}% ${t('renewable_heat')}`} targetLabel={t('target', { v: energyView.thermal.target })} color="#5a8a6a" />
               </MetricCard>
             </div>
           </Tooltip>
           <Tooltip text={t('tooltip_renewables')}>
             <div style={cardWrap}>
               {isAdmin && <button style={editBtn} onClick={() => openEnergyEdit('electricity')}>✏️</button>}
-              <MetricCard label={t('electricity')} bigValue={energy.electricity.total} unit={`${energy.electricity.unit} ${t('total_consumption').toLowerCase()}`} note={`${t('vs_prior', { v: Math.abs(energy.electricity.vsLastYear) })} — ${t('solar')}: ${energy.electricity.solarMWh.toLocaleString()} MWh`}>
-                <ProgressBar value={energy.electricity.renewablePct} label={`${energy.electricity.renewablePct}% ${t('renewables_share')}`} targetLabel={t('target', { v: energy.electricity.target })} color="#8ab890" />
+              <MetricCard label={t('electricity')} bigValue={energyView.electricity.total} unit={`${energyView.electricity.unit} ${t('total_consumption').toLowerCase()}`} note={`${t('vs_prior', { v: Math.abs(energyView.electricity.vsLastYear) })} — ${t('solar')}: ${energyView.electricity.solarMWh.toLocaleString()} MWh`}>
+                <ProgressBar value={energyView.electricity.renewablePct} label={`${energyView.electricity.renewablePct}% ${t('renewables_share')}`} targetLabel={t('target', { v: energyView.electricity.target })} color="#8ab890" />
               </MetricCard>
             </div>
           </Tooltip>
@@ -103,7 +154,7 @@ export default function EnergyPage({ setPage }) {
                 <tr>{['#', t('col_building'), t('col_mwh'), t('col_kwh_m2'), t('col_vs2022')].map(h => <th key={h} style={th}>{h}</th>)}</tr>
               </thead>
               <tbody>
-                {buildingsEnergy.map((b,i) => (
+                {filteredBuildings.map((b,i) => (
                   <tr key={b.name}>
                     <td style={td}>{i+1}</td>
                     <td style={td}>{b.name}</td>

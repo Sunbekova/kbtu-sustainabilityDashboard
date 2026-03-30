@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Chart, registerables } from 'chart.js';
 import { useData } from '../../DataContext';
-import { ChartCard, PageFooter } from '../UI';
+import { ChartCard, DashboardFiltersBar, PageFooter } from '../UI';
 import { useLang } from '../../LangContext';
 import { Tooltip } from '../Tooltip';
 import CardEditModal from '../CardEditModal';
@@ -23,13 +23,46 @@ function SmallCard({ title, value, unit, sub, onEdit, isAdmin }) {
 }
 
 export default function EmissionsPage({ setPage }) {
-  const { data, isAdmin, importTable, pushToSheets, config } = useData();
+  const { data, isAdmin, importTable, pushToSheets, config, dashboardFilters, getFacultyForBuilding } = useData();
   const { t } = useLang();
   const barRef = useRef(), pathRef = useRef();
   const barChart = useRef(), pathChart = useRef();
-  const { emissions, emissionsTrend } = data;
+  const { emissions, emissionsTrend, buildingsEnergy, buildingsWater } = data;
 
   const [editModal, setEditModal] = useState(null); // { title, fields, initialData, onSave }
+
+  const filteredTrend = dashboardFilters.year === 'all'
+    ? emissionsTrend
+    : emissionsTrend.filter(r => String(r.year) === dashboardFilters.year);
+
+  const locationRows = (buildingsEnergy || []).length ? buildingsEnergy : (buildingsWater || []).map((r) => ({ name: r.name, mwh: Number(r.drinking || 0) + Number(r.technical || 0) + Number(r.irrigation || 0) }));
+  const filteredLocationRows = locationRows.filter((r) => {
+    if (dashboardFilters.building !== 'all' && r.name !== dashboardFilters.building) return false;
+    if (dashboardFilters.faculty !== 'all' && getFacultyForBuilding(r.name) !== dashboardFilters.faculty) return false;
+    return true;
+  });
+
+  const totalLocation = locationRows.reduce((sum, r) => sum + Number(r.mwh || 0), 0);
+  const filteredLocation = filteredLocationRows.reduce((sum, r) => sum + Number(r.mwh || 0), 0);
+  const hasLocationFilter = dashboardFilters.building !== 'all' || dashboardFilters.faculty !== 'all';
+  const locationFactor = hasLocationFilter
+    ? (totalLocation > 0 ? filteredLocation / totalLocation : 0)
+    : 1;
+
+  const selectedPoint = filteredTrend.length ? filteredTrend[filteredTrend.length - 1] : null;
+  const totalFromYear = Number(selectedPoint?.actual);
+  const baseTotal = Number(emissions.total || 0);
+  const scope1Share = baseTotal > 0 ? Number(emissions.scope1 || 0) / baseTotal : 0;
+  const scope2Share = baseTotal > 0 ? Number(emissions.scope2 || 0) / baseTotal : 0;
+
+  const totalEmissions = Math.round((Number.isFinite(totalFromYear) ? totalFromYear : baseTotal) * locationFactor);
+  const emissionsView = {
+    scope1: Math.round(totalEmissions * scope1Share),
+    scope2: Math.round(totalEmissions * scope2Share),
+    total: totalEmissions,
+    perStudent: Number((Number(emissions.perStudent || 0) * locationFactor).toFixed(2)),
+    bySource: (emissions.bySource || []).map((r) => ({ ...r, tco2e: Math.round(Number(r.tco2e || 0) * locationFactor) })),
+  };
 
   const openEdit = (cardKey) => {
     const cardDefs = {
@@ -80,39 +113,40 @@ export default function EmissionsPage({ setPage }) {
     barChart.current = new Chart(barRef.current, {
       type: 'bar',
       data: {
-        labels: emissions.bySource.map(r => r.source),
-        datasets: [{ label: 'tCO₂e', data: emissions.bySource.map(r => r.tco2e), backgroundColor:['#2d5a3d','#5a8a6a','#8ab890','#b8d4bc','#7d8f7d','#a8b8a8'], borderRadius:6 }]
+        labels: emissionsView.bySource.map(r => r.source),
+        datasets: [{ label: 'tCO₂e', data: emissionsView.bySource.map(r => r.tco2e), backgroundColor:['#2d5a3d','#5a8a6a','#8ab890','#b8d4bc','#7d8f7d','#a8b8a8'], borderRadius:6 }]
       },
       options: { plugins:{ legend:{ display:false } }, scales:{ x:{ grid:{ display:false } }, y:{ grid:{ color:'rgba(0,0,0,.07)' }, ticks:{ callback:v=>v.toLocaleString() } } } }
     });
     pathChart.current = new Chart(pathRef.current, {
       type: 'line',
-      data: { labels: emissionsTrend.map(r => r.year), datasets: [
-        { label: t('actual'), data: emissionsTrend.map(r => r.actual), borderColor:'#2d5a3d', backgroundColor:'rgba(45,90,61,.1)', fill:true, tension:.4, pointRadius:5, spanGaps:false },
-        { label: t('target_label'), data: emissionsTrend.map(r => r.target), borderColor:'#8ab890', borderDash:[6,4], tension:.4, pointRadius:3, fill:false }
+      data: { labels: filteredTrend.map(r => r.year), datasets: [
+        { label: t('actual'), data: filteredTrend.map(r => Number.isFinite(r.actual) ? Math.round(r.actual * locationFactor) : null), borderColor:'#2d5a3d', backgroundColor:'rgba(45,90,61,.1)', fill:true, tension:.4, pointRadius:5, spanGaps:false },
+        { label: t('target_label'), data: filteredTrend.map(r => Number.isFinite(r.target) ? Math.round(r.target * locationFactor) : null), borderColor:'#8ab890', borderDash:[6,4], tension:.4, pointRadius:3, fill:false }
       ]},
       options: { plugins:{ legend:{ labels:{ font:{ family:'DM Sans' } } } }, scales:{ x:{ grid:{ color:'rgba(0,0,0,.06)' } }, y:{ grid:{ color:'rgba(0,0,0,.06)' }, ticks:{ callback:v=>v?.toLocaleString() } } } }
     });
     return () => { barChart.current?.destroy(); pathChart.current?.destroy(); };
-  }, [emissions, emissionsTrend, t]);
+  }, [emissionsView, filteredTrend, t, locationFactor]);
 
   return (
     <div style={{ position:'relative', overflow:'hidden' }}>
       <div style={section}>
         <div style={pageTitle}>{t('page_emissions_title')}</div>
         <div style={pageSub}>{t('page_emissions_sub')}</div>
+        <DashboardFiltersBar />
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:20 }}>
           <Tooltip text={t('tooltip_scope1')}>
-            <SmallCard title={t('scope1')} value={emissions.scope1} unit={t('tco2e_year')} sub={t('scope1_sub')} isAdmin={isAdmin} onEdit={() => openEdit('scope1')} />
+            <SmallCard title={t('scope1')} value={emissionsView.scope1} unit={t('tco2e_year')} sub={t('scope1_sub')} isAdmin={isAdmin} onEdit={() => openEdit('scope1')} />
           </Tooltip>
           <Tooltip text={t('tooltip_scope2')}>
-            <SmallCard title={t('scope2')} value={emissions.scope2} unit={t('tco2e_year')} sub={t('scope2_sub')} isAdmin={isAdmin} onEdit={() => openEdit('scope2')} />
+            <SmallCard title={t('scope2')} value={emissionsView.scope2} unit={t('tco2e_year')} sub={t('scope2_sub')} isAdmin={isAdmin} onEdit={() => openEdit('scope2')} />
           </Tooltip>
           <Tooltip text={t('tooltip_total_ghg')}>
-            <SmallCard title={t('total_ghg')} value={emissions.total} unit={t('tco2e_year')} sub={t('ghg_down_2020')} isAdmin={isAdmin} onEdit={() => openEdit('total')} />
+            <SmallCard title={t('total_ghg')} value={emissionsView.total} unit={t('tco2e_year')} sub={t('ghg_down_2020')} isAdmin={isAdmin} onEdit={() => openEdit('total')} />
           </Tooltip>
           <Tooltip text={t('tooltip_per_student')}>
-            <SmallCard title={t('per_student')} value={emissions.perStudent} unit={t('tco2e_student')} sub={t('per_student_down')} isAdmin={isAdmin} onEdit={() => openEdit('total')} />
+            <SmallCard title={t('per_student')} value={emissionsView.perStudent} unit={t('tco2e_student')} sub={t('per_student_down')} isAdmin={isAdmin} onEdit={() => openEdit('total')} />
           </Tooltip>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>

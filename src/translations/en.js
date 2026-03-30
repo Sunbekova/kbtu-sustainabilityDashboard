@@ -150,6 +150,8 @@ export const en = {
     map_filter_category: 'Category',
     map_filter_building: 'Building',
     map_filter_year: 'Year',
+    dashboard_filter_year_period: 'Year / period',
+    dashboard_filter_faculty: 'Faculty',
     map_all: 'All',
     map_add_point: '+ Add Object',
     map_edit_point: 'Edit',

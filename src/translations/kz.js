@@ -172,6 +172,8 @@ export const kz = {
       map_filter_category: 'Санат',
       map_filter_building: 'Ғимарат',
       map_filter_year: 'Жыл',
+      dashboard_filter_year_period: 'Жыл / кезең',
+      dashboard_filter_faculty: 'Факультет',
       map_all: 'Барлығы',
       map_add_point: '+ Объект қосу',
       map_edit_point: 'Өңдеу',
