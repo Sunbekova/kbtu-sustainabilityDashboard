@@ -1,0 +1,60 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# KBTU Sustainable Campus Dashboard — docker-compose.yml
+#
+# Usage:
+#   docker compose up -d          # start
+#   docker compose down           # stop
+#   docker compose logs -f        # tail logs
+#   docker compose up -d --build  # rebuild and restart
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  kbtu-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_ADMIN_PASSWORD: ${REACT_APP_ADMIN_PASSWORD:-kbtu2024}
+        REACT_APP_GMAPS_KEY: ${REACT_APP_GMAPS_KEY:-}
+        REACT_APP_SHEETS_API_URL: ${REACT_APP_SHEETS_API_URL:-}
+        PUBLIC_URL: ${PUBLIC_URL:-}
+
+    container_name: kbtu-dashboard
+
+    # Unique port — change in .env if 3010 is taken on the host
+    ports:
+      - "${PORT:-3010}:3010"
+
+    restart: unless-stopped
+
+    # Resource limits (see Resource Estimates in README)
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3010/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # No external volumes needed — pure static site, state lives in user's browser localStorage
+    # No database, no Redis, no external services required
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kbtu-dashboard.rule=Host(`sustainability.kbtu.kz`)"
+      - "traefik.http.routers.kbtu-dashboard.entrypoints=websecure"
+      - "traefik.http.services.kbtu-dashboard.loadbalancer.server.port=3010"

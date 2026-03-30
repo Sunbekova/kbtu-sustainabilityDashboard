@@ -162,8 +162,9 @@ export const kz = {
       save_settings: '💾 Баптауларды сақтау',
       our_website: 'БІЗДІҢ САЙТ',
       export_csv: '⬇ CSV',
-      export_png: '⬇ PNG',
+      export_pdf_all_pages: '⬇ PDF ALL PAGES',
       export_pdf: '⬇ PDF',
+      export_excel: '⬇ EXCEL',
 
       // Map
       nav_map: 'Карта',

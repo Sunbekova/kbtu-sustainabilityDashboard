@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Chart, registerables } from 'chart.js';
 import { useData } from '../../DataContext';
-import { ChartCard, DashboardFiltersBar, PageFooter, MetricCard, ProgressBar } from '../UI';
+import { MetricCard, ChartCard, DashboardFiltersBar, PageFooter, ProgressBar, ExportBar } from '../UI';
+import { exportDashboardPDF, exportPageCSV, exportPageExcel } from '../../importUtils';
 import { useLang } from '../../LangContext';
 import { Tooltip } from '../Tooltip';
 import CardEditModal from '../CardEditModal';
@@ -183,6 +184,12 @@ export default function WaterPage({ setPage }) {
       <div style={section}>
         <div style={pageTitle}>{t('page_water_title')}</div>
         <div style={pageSub}>{t('page_water_sub')}</div>
+        <ExportBar
+          page="water"
+          onCSV={() => exportPageCSV('water', data, t)}
+          onExcel={() => exportPageExcel('water', data, t)}
+          onPDF={() => window.print()}
+        />
         <DashboardFiltersBar />
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:20, marginBottom:20 }}>
           <Tooltip text={t('tooltip_water_total')}>

@@ -372,13 +372,24 @@ export function MetricCard({ label, bigValue, unit, note, children }) {
 }
 
 // ── Export Bar ────────────────────────────────────────────
-export function ExportBar({ onCSV, onPNG, onPDF }) {
+export function ExportBar({ page, onCSV, onExcel, onPDF, onPDFAll }) {
   const { t } = useLang();
+
   return (
     <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginBottom:20 }}>
+      
       <button style={exportBtn} onClick={onCSV}>{t('export_csv')}</button>
-      <button style={exportBtn} onClick={onPNG}>{t('export_png')}</button>
-      <button style={exportBtn} onClick={() => window.print()}>{t('export_pdf')}</button>
+      <button style={exportBtn} onClick={onExcel}>{t('export_excel')}</button>
+      {page === 'home' && (
+        <>
+          <button style={exportBtn} onClick={onPDFAll}>
+            {t('export_pdf_all_pages')}
+          </button>
+        </>
+      )}
+      <button style={exportBtn} onClick={onPDF}>
+            {t('export_pdf')}
+          </button>
     </div>
   );
 }

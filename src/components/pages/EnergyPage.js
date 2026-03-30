@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Chart, registerables } from 'chart.js';
 import { useData } from '../../DataContext';
-import { MetricCard, ChartCard, DashboardFiltersBar, PageFooter, ProgressBar } from '../UI';
+import { MetricCard, ChartCard, DashboardFiltersBar, PageFooter, ProgressBar, ExportBar } from '../UI';
+import { exportDashboardPDF, exportPageCSV, exportPageExcel } from '../../importUtils';
 import { useLang } from '../../LangContext';
 import { Tooltip } from '../Tooltip';
 import CardEditModal from '../CardEditModal';
@@ -115,6 +116,12 @@ export default function EnergyPage({ setPage }) {
       <div style={section}>
         <div style={pageTitle}>{t('page_energy_title')}</div>
         <div style={pageSub}>{t('page_energy_sub')}</div>
+        <ExportBar
+          page="energy"
+          onCSV={() => exportPageCSV('energy', data, t)}
+          onExcel={() => exportPageExcel('energy', data, t)}
+          onPDF={() => window.print()}
+        />
         <DashboardFiltersBar />
 
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:20, marginBottom:20 }}>
@@ -143,7 +150,6 @@ export default function EnergyPage({ setPage }) {
             </div>
           </Tooltip>
         </div>
-
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
           <ChartCard title={t('energy_trend')} section="energyTrend">
             <canvas ref={trendRef} style={{ maxHeight:240 }} />

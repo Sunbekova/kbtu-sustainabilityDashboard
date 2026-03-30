@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Chart, registerables } from 'chart.js';
 import { useData } from '../../DataContext';
-import { ChartCard, DashboardFiltersBar, PageFooter } from '../UI';
+import { ChartCard, DashboardFiltersBar, PageFooter, ExportBar } from '../UI';
+import { exportPageCSV, exportPageExcel } from '../../importUtils';
 import { useLang } from '../../LangContext';
 import { Tooltip } from '../Tooltip';
 import CardEditModal from '../CardEditModal';
@@ -182,6 +183,12 @@ export default function WastePage({ setPage }) {
       <div style={section}>
         <div style={pageTitle}>{t('page_waste_title')}</div>
         <div style={pageSub}>{t('page_waste_sub')}</div>
+        <ExportBar
+          page="waste"
+          onCSV={() => exportPageCSV('waste', data, t)}
+          onExcel={() => exportPageExcel('waste', data, t)}
+          onPDF={() => window.print()}
+        />
         <DashboardFiltersBar />
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:20 }}>
           <Tooltip text={t('tooltip_total_waste')}>

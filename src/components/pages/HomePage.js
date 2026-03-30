@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Chart, registerables } from 'chart.js';
 import { useData } from '../../DataContext';
 import { KPICard, ChartCard, PageFooter, ExportBar } from '../UI';
-import { exportPageCSV, exportDashboardPDF } from '../../importUtils';
+import { exportPageCSV, exportPageExcel, exportDashboardPDF } from '../../importUtils';
 import { useLang } from '../../LangContext';
 import { Tooltip } from '../Tooltip';
 import KPIEditModal from '../KPIEditModal';
@@ -164,10 +164,15 @@ export default function HomePage({ setPage }) {
       {/* Content */}
       <div style={section}>
       <ExportBar
-        onExel
-        onCSV={() => exportPageCSV(activePage, data, t)}
-        onPNG={() => alert('Use browser screenshot or Print → Save as PDF')}
-        onPDF={async () => {
+        page="home"
+        onCSV={() => exportPageCSV('home', data, t)}
+        onExcel={() => exportPageExcel('home', data, t)}
+
+        // single page PDF
+        onPDF={() => window.print()}
+
+        // ALL pages PDF
+        onPDFAll={async () => {
           const btn = document.activeElement;
           btn?.blur();
           await exportDashboardPDF(setPage);

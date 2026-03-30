@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Chart, registerables } from 'chart.js';
 import { useData } from '../../DataContext';
-import { ChartCard, PageFooter } from '../UI';
+import { MetricCard, ChartCard, DashboardFiltersBar, PageFooter, ProgressBar, ExportBar } from '../UI';
+import { exportDashboardPDF, exportPageCSV, exportPageExcel } from '../../importUtils';
 import { useLang } from '../../LangContext';
 import { Tooltip } from '../Tooltip';
 import CardEditModal from '../CardEditModal';
@@ -198,6 +199,12 @@ export default function EnvironmentPage({ setPage }) {
       <div style={section}>
         <div style={pageTitle}>{t('page_env_title')}</div>
         <div style={pageSub}>{t('page_env_sub')}</div>
+        <ExportBar
+          page="environment"
+          onCSV={() => exportPageCSV('environment', data, t)}
+          onExcel={() => exportPageExcel('environment', data, t)}
+          onPDF={() => window.print()}
+        />
 
         {/* Edit all 4 env cards together via one button above the grid */}
         {isAdmin && (

@@ -162,8 +162,9 @@ export const ru = {
         settings_title: '⚙️ Настройки дашборда',
         save_settings: '💾 Сохранить настройки',
         export_csv: '⬇ CSV',
-        export_png: '⬇ PNG',
+        export_pdf_all_pages: '⬇ PDF ALL PAGES',
         export_pdf: '⬇ PDF',
+        export_excel: '⬇ EXCEL',
   
         // Map
         nav_map: 'Карта',

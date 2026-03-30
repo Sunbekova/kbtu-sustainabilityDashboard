@@ -29,8 +29,9 @@ export const en = {
     impact_categories: 'Impact Category Breakdown',
     impact_equiv: 'Impact Equivalences',
     export_csv: '⬇ CSV',
-    export_png: '⬇ PNG',
+    export_pdf_all_pages: '⬇ PDF ALL PAGES',
     export_pdf: '⬇ PDF',
+    export_excel: '⬇ EXCEL',
   
     kpi_esg: 'ESG Score',
     kpi_energy: 'Energy Consumption',

@@ -209,13 +209,9 @@ export async function exportAllDataExcel(data) {
   XLSX.writeFile(wb, 'kbtu_full_export.xlsx');
 }
 
-//Export all dashboard pages as a single PDF.
 
+// Export all visible dashboard pages as a single PDF.
 
-/**
- * Export all visible dashboard pages as a single PDF.
- * Navigates through each page, captures with html2canvas, combines into jsPDF.
- */
 export async function exportDashboardPDF(setPage) {
   const html2canvas = (await import('html2canvas')).default;
   const { jsPDF } = await import('jspdf');

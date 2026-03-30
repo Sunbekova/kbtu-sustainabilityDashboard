@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Chart, registerables } from 'chart.js';
 import { useData } from '../../DataContext';
-import { ChartCard, DashboardFiltersBar, PageFooter } from '../UI';
-import { useLang } from '../../LangContext';
+import { MetricCard, ChartCard, DashboardFiltersBar, PageFooter, ProgressBar, ExportBar } from '../UI';
+import { exportDashboardPDF, exportPageCSV, exportPageExcel } from '../../importUtils';import { useLang } from '../../LangContext';
 import { Tooltip } from '../Tooltip';
 import CardEditModal from '../CardEditModal';
 
@@ -134,6 +134,12 @@ export default function EmissionsPage({ setPage }) {
       <div style={section}>
         <div style={pageTitle}>{t('page_emissions_title')}</div>
         <div style={pageSub}>{t('page_emissions_sub')}</div>
+        <ExportBar
+          page="emissions"
+          onCSV={() => exportPageCSV('emissions', data, t)}
+          onExcel={() => exportPageExcel('emissions', data, t)}
+          onPDF={() => window.print()}
+        />
         <DashboardFiltersBar />
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:20 }}>
           <Tooltip text={t('tooltip_scope1')}>
